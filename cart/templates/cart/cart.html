@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">Your Cart</h1>
+
+{% if cart_items %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Grind</th>
+          <th class="text-end">Price</th>
+          <th style="width:140px;">Qty</th>
+          <th class="text-end">Line total</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in cart_items %}
+        <tr>
+          <td>
+            <div class="d-flex align-items-center gap-3">
+              {% if item.image_url %}
+                <img src="{{ item.image_url }}" alt="" style="width:60px;height:60px;object-fit:cover;border-radius:.5rem;">
+              {% endif %}
+              <div>
+                <div class="fw-semibold">{{ item.name }}</div>
+                <div class="text-secondary small">{{ item.sku }}</div>
+              </div>
+            </div>
+          </td>
+
+          <td>
+            <form action="{% url 'cart:update' slug=item.slug %}" method="post" class="d-flex gap-2">
+              {% csrf_token %}
+              <select name="grind" class="form-select form-select-sm" onchange="this.form.submit()">
+                {% for value, label in grind_choices %}
+                  <option value="{{ value }}" {% if item.grind == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </td>
+
+          <td class="text-end">€{{ item.price }}</td>
+
+          <td>
+            <form action="{% url 'cart:update' slug=item.slug %}" method="post" class="d-flex">
+              {% csrf_token %}
+              <input type="number" min="1" name="quantity" value="{{ item.quantity }}" class="form-control form-control-sm me-2" style="max-width:80px;">
+              <button class="btn btn-sm btn-outline-secondary">Update</button>
+            </form>
+          </td>
+
+          <td class="text-end">€{{ item.line_total }}</td>
+
+          <td class="text-end">
+            <a href="{% url 'cart:remove' slug=item.slug %}" class="btn btn-sm btn-outline-danger">Remove</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="d-flex justify-content-end">
+    <div class="card" style="min-width:320px;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <span>Subtotal</span><strong>€{{ subtotal }}</strong>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>Shipping</span><strong>€{{ shipping }}</strong>
+        </div>
+        <hr>
+        <div class="d-flex justify-content-between fs-5">
+          <span>Total</span><strong>€{{ total }}</strong>
+        </div>
+        <div class="d-grid mt-3">
+          <a href="#" class="btn btn-primary">Proceed to Checkout</a>
+          <a href="{% url 'cart:clear' %}" class="btn btn-outline-secondary mt-2">Clear Cart</a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <p>Your cart is empty.</p>
+{% endif %}
+
+<a href="/shop/" class="btn btn-link mt-3">&larr; Continue shopping</a>
+{% endblock %}

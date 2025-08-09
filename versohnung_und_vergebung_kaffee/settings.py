@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "orders",
     "reviews",
     "profiles.apps.ProfilesConfig",
+    "cart",
 
     # 3rd party (add when you wire them)
     # "cloudinary_storage",  # if you use Cloudinary for static/media
@@ -64,6 +65,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "cart.context_processors.cart_summary",
+
             ],
         },
     },

@@ -28,10 +28,37 @@
         </ul>
       </div>
 
-      <div class="mt-4 d-flex align-items-center gap-2">
-        <a href="#" class="btn btn-primary btn-lg">Add to Cart</a>
-        <small class="text-secondary">{% if product.stock > 0 %}In stock: {{ product.stock }}{% else %}Out of stock{% endif %}</small>
+      <!-- 🔽 Replaced "Add to Cart" button with real form -->
+      <div class="mt-4">
+        <form action="{% url 'cart:add' slug=product.slug %}" method="post" class="row g-2 align-items-end">
+          {% csrf_token %}
+          <div class="col-auto">
+            <label class="form-label mb-1">Grind</label>
+            <select name="grind" class="form-select">
+              {% for value, label in grind_choices %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-auto">
+            <label class="form-label mb-1">Qty</label>
+            <input type="number" name="quantity" min="1" value="1" class="form-control" style="max-width:90px;">
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-primary btn-lg" {% if product.stock == 0 %}disabled{% endif %}>
+              Add to Cart
+            </button>
+          </div>
+        </form>
+        <small class="text-secondary d-block mt-2">
+          {% if product.stock > 0 %}
+            In stock: {{ product.stock }}
+          {% else %}
+            Out of stock
+          {% endif %}
+        </small>
       </div>
+      <!-- 🔼 End of form -->
     </div>
   </div>
 {% endblock %}
