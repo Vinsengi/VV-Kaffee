@@ -5,4 +5,5 @@ from .models import Review
 class ReviewAdmin(admin.ModelAdmin):
     list_display = ("product", "user", "rating", "is_public", "created_at")
     list_filter = ("rating", "is_public", "created_at")
-    search_fields = ("product__name", "user__username", "comment")
+    search_fields = ("product__name", "user__username", "comment", "title")
+    ordering = ("-created_at",)
