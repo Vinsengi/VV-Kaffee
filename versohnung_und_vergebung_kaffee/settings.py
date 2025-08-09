@@ -28,7 +28,7 @@ INSTALLED_APPS = [
     "products",
     "orders",
     "reviews",
-    "profiles",
+    "profiles.apps.ProfilesConfig",
 
     # 3rd party (add when you wire them)
     # "cloudinary_storage",  # if you use Cloudinary for static/media
