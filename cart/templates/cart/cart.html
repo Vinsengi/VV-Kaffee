@@ -76,7 +76,7 @@
           <span>Total</span><strong>€{{ total }}</strong>
         </div>
         <div class="d-grid mt-3">
-          <a href="#" class="btn btn-primary">Proceed to Checkout</a>
+          <a href="{% url 'orders:checkout' %}" class="btn btn-primary">Proceed to Checkout</a>
           <a href="{% url 'cart:clear' %}" class="btn btn-outline-secondary mt-2">Clear Cart</a>
         </div>
       </div>

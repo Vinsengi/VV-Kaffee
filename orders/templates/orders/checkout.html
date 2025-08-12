@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-4">Checkout</h1>
+
+<div class="row g-4">
+  <!-- Left: Shipping & contact form -->
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <!-- Non-field (global) errors -->
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+              {{ form.non_field_errors }}
+            </div>
+          {% endif %}
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.full_name.id_for_label }}">Full name</label>
+              {{ form.full_name }}
+              {% if form.full_name.errors %}
+                <div class="text-danger small">{{ form.full_name.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.email.id_for_label }}">Email</label>
+              {{ form.email }}
+              {% if form.email.errors %}
+                <div class="text-danger small">{{ form.email.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.phone_number.id_for_label }}">Phone</label>
+              {{ form.phone_number }}
+              {% if form.phone_number.errors %}
+                <div class="text-danger small">{{ form.phone_number.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.address_line1.id_for_label }}">Address line 1</label>
+              {{ form.address_line1 }}
+              {% if form.address_line1.errors %}
+                <div class="text-danger small">{{ form.address_line1.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.address_line2.id_for_label }}">Address line 2</label>
+              {{ form.address_line2 }}
+              {% if form.address_line2.errors %}
+                <div class="text-danger small">{{ form.address_line2.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label" for="{{ form.city.id_for_label }}">City</label>
+              {{ form.city }}
+              {% if form.city.errors %}
+                <div class="text-danger small">{{ form.city.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label" for="{{ form.postal_code.id_for_label }}">Postal code</label>
+              {{ form.postal_code }}
+              {% if form.postal_code.errors %}
+                <div class="text-danger small">{{ form.postal_code.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label" for="{{ form.country.id_for_label }}">Country</label>
+              {{ form.country }}
+              {% if form.country.errors %}
+                <div class="text-danger small">{{ form.country.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="d-grid mt-4">
+            <button class="btn btn-primary btn-lg">Place Order</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Order summary -->
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="mb-3">Order Summary</h5>
+
+        {% for item in items %}
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="fw-semibold">{{ item.name }}</div>
+              <div class="text-secondary small">
+                x{{ item.quantity }} • €{{ item.price }} each{% if item.grind %} • {{ item.grind_label }}{% endif %}
+              </div>
+            </div>
+            <div>€{{ item.line_total }}</div>
+          </div>
+        {% empty %}
+          <p>Your cart is empty.</p>
+        {% endfor %}
+
+        <hr>
+        <div class="d-flex justify-content-between">
+          <span>Subtotal</span><strong>€{{ subtotal }}</strong>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>Shipping</span><strong>€{{ shipping }}</strong>
+        </div>
+        <div class="d-flex justify-content-between fs-5 mt-2">
+          <span>Total</span><strong>€{{ total }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
