@@ -12,7 +12,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ── Core settings ───────────────────────────────────────────────────────────────
 SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-me")  # use .env
-DEBUG = config("DEBUG", default=True, cast=bool)
+DEBUG = config("DEBUG", default=False, cast=bool)
+STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY")
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET")
+
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 # ── Installed apps ─────────────────────────────────────────────────────────────
