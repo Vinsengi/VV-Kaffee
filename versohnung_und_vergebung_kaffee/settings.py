@@ -92,7 +92,9 @@ DATABASE_URL = config("DATABASE_URL", default=None)
 if DATABASE_URL:
     import dj_database_url
     DATABASES["default"] = dj_database_url.config(
-        default=DATABASE_URL, conn_max_age=600, ssl_require=True
+        default=DATABASE_URL,
+        conn_max_age=600,
+        ssl_require=True,
     )
 
 # ── Password validation ────────────────────────────────────────────────────────
@@ -124,7 +126,8 @@ STORAGES = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# ── Stripe (from .env) ─────────────────────────────────────────────────────────
+# ── Stripe (from .env) ────────────────────────────────────────────────
+#───────────────────────────────────────────────────────────────────────────
 STRIPE_PUBLIC_KEY = config("STRIPE_PUBLIC_KEY", default="")
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
 
