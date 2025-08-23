@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-3">Review & Pay</h1>
+<p class="text-muted">Order <strong>{{ order.reference }}</strong> • Total due: <strong>€{{ total }}</strong></p>
+
+<div class="row g-4">
+  <!-- Left: Order summary -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="mb-3">Order Summary</h5>
+        {% for item in order_items %}
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="fw-semibold">{{ item.name }}</div>
+              <div class="text-secondary small">
+                x{{ item.quantity }} • €{{ item.unit_price }} each
+                {% if item.grind %} • {{ item.grind|title|cut:"_" }}{% endif %}
+                {% if item.weight_grams %} • {{ item.weight_grams }}g{% endif %}
+              </div>
+            </div>
+            <div>€{{ item.line_total }}</div>
+          </div>
+        {% empty %}
+          <p>No items found for this order.</p>
+        {% endfor %}
+        <hr>
+        <div class="d-flex justify-content-between">
+          <span>Subtotal</span><strong>€{{ subtotal }}</strong>
+        </div>
+        <div class="d-flex justify-content-between">
+          <span>Shipping</span><strong>€{{ shipping }}</strong>
+        </div>
+        <div class="d-flex justify-content-between fs-5 mt-2">
+          <span>Total</span><strong>€{{ total }}</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Payment Element -->
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="mb-3">Payment</h5>
+
+        <!-- 1) Load Stripe.js -->
+        <script src="https://js.stripe.com/v3/"></script>
+
+        <!-- 2) Payment Element container -->
+        <form id="payment-form">
+          <div id="payment-element"><!-- Stripe injects fields here --></div>
+          <button id="submit" class="btn btn-primary mt-3 w-100">Pay €{{ total }}</button>
+          <div id="error-message" class="text-danger mt-2" role="alert"></div>
+        </form>
+
+        <script>
+          const stripe = Stripe("{{ stripe_publishable_key }}");
+          const elements = stripe.elements({ clientSecret: "{{ client_secret }}" });
+          const paymentElement = elements.create("payment");
+          paymentElement.mount("#payment-element");
+
+          const form = document.getElementById("payment-form");
+          const submitBtn = document.getElementById("submit");
+          const errorDiv = document.getElementById("error-message");
+
+          form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            submitBtn.disabled = true;
+
+            const { error } = await stripe.confirmPayment({
+              elements,
+              confirmParams: {
+                return_url: window.location.origin + "{% url 'orders:thank_you' order_id=order.id %}",
+              },
+            });
+
+            if (error) {
+              errorDiv.textContent = error.message || "Payment failed. Please try again.";
+              submitBtn.disabled = false;
+            }
+          });
+        </script>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

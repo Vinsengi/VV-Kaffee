@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from products.models import Product
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 class Order(models.Model):
     STATUS_CHOICES = [
@@ -51,14 +51,32 @@ class Order(models.Model):
         self.total = (self.subtotal + self.shipping).quantize(Decimal("0.01"))
         self.save(update_fields=["subtotal", "shipping", "total"])
 
+    @property
+    def reference(self) -> str:
+        # e.g. “VV-000123”
+        return f"VV-{self.id:06d}"
+
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="order_items")
     product_name_snapshot = models.CharField(max_length=140)  # keep name at purchase time
-    unit_price = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(0)])
-    quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
-    grind = models.CharField(max_length=30, blank=True)  # chosen grind at checkout (from Product.GRIND_CHOICES)
+    unit_price = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(0)],
+        null=False,
+        blank=False,
+    )
+    quantity = models.PositiveIntegerField(
+        default=1,
+        validators=[MinValueValidator(1)],
+        null=False,
+        blank=False,
+    )
+
+    grind = models.CharField(max_length=30, blank=True)
     weight_grams = models.PositiveIntegerField(default=250)
 
     class Meta:
@@ -69,4 +87,6 @@ class OrderItem(models.Model):
 
     @property
     def line_total(self) -> Decimal:
-        return (self.unit_price * self.quantity).quantize(Decimal("0.01"))
+        price = self.unit_price or Decimal("0.00")
+        qty = self.quantity or 0
+        return (price * qty).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)

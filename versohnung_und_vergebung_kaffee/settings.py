@@ -12,7 +12,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ── Core settings ───────────────────────────────────────────────────────────────
 SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-me")  # use .env
-DEBUG = config("DEBUG", default=True, cast=bool)
+DEBUG = config("DEBUG", default=False, cast=bool)
+STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY")
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET")
+
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 # ── Installed apps ─────────────────────────────────────────────────────────────
@@ -88,7 +92,9 @@ DATABASE_URL = config("DATABASE_URL", default=None)
 if DATABASE_URL:
     import dj_database_url
     DATABASES["default"] = dj_database_url.config(
-        default=DATABASE_URL, conn_max_age=600, ssl_require=True
+        default=DATABASE_URL,
+        conn_max_age=600,
+        ssl_require=True,
     )
 
 # ── Password validation ────────────────────────────────────────────────────────
@@ -120,7 +126,8 @@ STORAGES = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# ── Stripe (from .env) ─────────────────────────────────────────────────────────
+# ── Stripe (from .env) ────────────────────────────────────────────────
+#───────────────────────────────────────────────────────────────────────────
 STRIPE_PUBLIC_KEY = config("STRIPE_PUBLIC_KEY", default="")
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
 
@@ -130,3 +137,10 @@ CLOUDINARY_URL = config("CLOUDINARY_URL", default="")
 
 # ── Default primary key field type ─────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": "WARNING"},
+}
