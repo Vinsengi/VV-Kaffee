@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container my-4">
+  <h2>Picklist for Order {{ order.reference }}</h2>
+  <p><strong>Ship to:</strong><br>
+    {{ order.full_name }}<br>
+    {{ order.address }}<br>
+    {{ order.city }}, {{ order.postcode }}<br>
+    {{ order.country }}
+  </p>
+
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Qty</th>
+        <th>Product</th>
+        <th>Grind</th>
+        <th>Weight</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for oi in order.items.all %}
+      <tr>
+        <td>{{ oi.quantity }}</td>
+        <td>{{ oi.product_name_snapshot }}</td>
+        <td>{{ oi.grind|title|cut:"_" }}</td>
+        <td>{{ oi.weight_grams }}g</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p><strong>Total items:</strong> {{ order.items.count }}</p>
+  <p><strong>Order total:</strong> €{{ order.total }}</p>
+</div>
+{% endblock %}

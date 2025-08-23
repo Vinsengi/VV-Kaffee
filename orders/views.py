@@ -15,6 +15,7 @@ from products.models import Product
 from cart.utils import cart_from_session, compute_summary
 from .forms import CheckoutForm
 from .models import Order, OrderItem
+from django.contrib.admin.views.decorators import staff_member_required
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -44,7 +45,7 @@ def checkout(request):
                 city=form.cleaned_data["city"],
                 postal_code=form.cleaned_data["postal_code"],
                 country=form.cleaned_data.get("country", "Germany"),
-                status="pending",
+                status="new",
             )
 
             # 2) Copy items from session cart into OrderItems + compute totals
@@ -72,6 +73,11 @@ def checkout(request):
             order.save(update_fields=["subtotal", "shipping", "total"])
 
             # 3) Create PaymentIntent
+
+            first_name = items[0]["name"] if items else "order"
+            extra = f" +{len(items) - 1} more" if len(items) > 1 else ""
+            pi_description = f"VV Kaffee -  {first_name}{extra}"
+             
             intent = stripe.PaymentIntent.create(
                 amount=_to_cents(order.total),
                 currency="eur",
@@ -80,6 +86,7 @@ def checkout(request):
                     "email": order.email,
                 },
                 receipt_email=order.email,
+                description=pi_description,
                 # automatic_payment_methods is easiest for test
                 automatic_payment_methods={"enabled": True},
             )
@@ -107,18 +114,41 @@ def pay(request, order_id: int):
         messages.error(request, "Payment not initialized for this order.")
         return redirect("orders:checkout")
 
+    # Build a clean list of items for display
+    order_items = []
+    subtotal = Decimal("0.00")
+    for oi in order.items.select_related("product").all():  # uses related_name="items"
+        line_total = (oi.unit_price * oi.quantity).quantize(Decimal("0.01"))
+        subtotal += line_total
+        order_items.append({
+            "name": oi.product_name_snapshot,
+            "quantity": oi.quantity,
+            "unit_price": oi.unit_price,
+            "grind": oi.grind,
+            "weight_grams": oi.weight_grams,
+            "line_total": line_total,
+        })
+
+    # fetch PI client secret
     intent = stripe.PaymentIntent.retrieve(order.payment_intent_id)
     client_secret = intent.client_secret
 
     return render(request, "orders/pay.html", {
         "order": order,
+        "order_items": order_items,
+        "subtotal": order.subtotal,   # already stored on order
+        "shipping": order.shipping,
+        "total": order.total,
         "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
         "client_secret": client_secret,
     })
 
 
 def thank_you(request, order_id: int):
-    order = get_object_or_404(Order, pk=order_id)
+    order = get_object_or_404(
+        Order.objects.prefetch_related("items__product"),
+        pk=order_id
+    )
     return render(request, "orders/thank_you.html", {"order": order})
 
 
@@ -205,3 +235,9 @@ def stripe_webhook(request):
 
     # 4) For all other events, just acknowledge
     return HttpResponse(status=200)
+
+
+@staff_member_required
+def order_picklist(request, order_id):
+    order = get_object_or_404(Order.objects.prefetch_related("items__product"), pk=order_id)
+    return render(request, "orders/picklist.html", {"order": order})

@@ -51,6 +51,11 @@ class Order(models.Model):
         self.total = (self.subtotal + self.shipping).quantize(Decimal("0.01"))
         self.save(update_fields=["subtotal", "shipping", "total"])
 
+    @property
+    def reference(self) -> str:
+        # e.g. “VV-000123”
+        return f"VV-{self.id:06d}"
+
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
