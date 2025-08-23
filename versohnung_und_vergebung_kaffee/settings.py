@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 from decouple import config
+from django.urls import reverse_lazy
+
 
 # Optional: only used if you set DATABASE_URL for Postgres
 try:
@@ -144,3 +146,7 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": "WARNING"},
 }
+
+
+LOGIN_REDIRECT_URL = reverse_lazy("post_login_redirect")
+LOGOUT_REDIRECT_URL = "/"                               

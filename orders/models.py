@@ -4,6 +4,7 @@ from django.core.validators import MinValueValidator
 from products.models import Product
 from decimal import Decimal, ROUND_HALF_UP
 
+
 class Order(models.Model):
     STATUS_CHOICES = [
         ("new", "New"),
@@ -39,6 +40,9 @@ class Order(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        permissions = [
+            ("view_fulfillment", "Can access fulfillment (paid picklists)"),
+        ]
 
     def __str__(self):
         return f"Order #{self.id} - {self.full_name}"

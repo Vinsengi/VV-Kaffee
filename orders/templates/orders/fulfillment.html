@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <h2 class="mb-3">Paid Orders – Fulfillment</h2>
+
+  <form class="row g-2 mb-3" method="get">
+    <div class="col-auto">
+      <input name="q" value="{{ request.GET.q }}" class="form-control" placeholder="Search name or email">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-outline-primary">Search</button>
+    </div>
+  </form>
+
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>ID</th>
+          <th>Customer</th>
+          <th>Email</th>
+          <th>Items</th>
+          <th>Total €</th>
+          <th>Placed</th>
+          <th>Picklist</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+        <tr>
+          <td>#{{ o.id }}</td>
+          <td>{{ o.full_name|default:"—" }}</td>
+          <td>{{ o.email|default:"—" }}</td>
+          <td>{{ o.items.count }}</td>
+          <td>€{{ o.total|floatformat:2 }}</td>
+          <td>{{ o.created_at|date:"Y-m-d H:i" }}</td>
+          <td>
+            <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{% url 'orders:order_picklist' o.id %}">View</a>
+            <a class="btn btn-sm btn-primary" target="_blank" href="{% url 'orders:order_picklist_pdf' o.id %}">PDF</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-muted text-center">No paid orders.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

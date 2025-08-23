@@ -35,6 +35,13 @@ from reportlab.platypus import (
 import os
 from reportlab.lib.units import cm
 
+from django.contrib.auth.decorators import login_required, permission_required
+from django.http import HttpResponseForbidden, Http404
+
+from django.utils import timezone
+from django.db.models import F
+
+
 logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -265,20 +272,52 @@ def _format_address(order):
     return ", ".join(parts) if parts else "—"
 
 
+@login_required
+@permission_required("orders.view_fulfillment", raise_exception=True)
 @staff_member_required
 def order_picklist(request, order_id):
-    order = get_object_or_404(Order.objects.prefetch_related("items__product"), pk=order_id)
-    return render(request, "orders/picklist.html", {"order": order})
+    order = get_object_or_404(
+        Order.objects.prefetch_related("items__product"),
+        pk=order_id
+    )
+    _ensure_paid_or_superuser(order, request.user)
+
+    total_qty = 0
+    total_weight = 0
+    grand_total = Decimal("0.00")
+
+    for oi in order.items.all():
+        qty = oi.quantity or 0
+        unit = oi.unit_price or Decimal("0.00")
+        total_qty += qty
+        total_weight += qty * (oi.weight_grams or 0)
+        grand_total += unit * qty
+
+    context = {
+        "order": order,
+        "total_qty": total_qty,
+        "total_weight": total_weight,     # grams
+        "grand_total": grand_total,
+    }
+    return render(request, "orders/picklist.html", context)
 
 
+def _fmt_money(value) -> str:
+    """Format numbers/Decimals as Euro currency."""
+    dec = (Decimal(value or 0)
+           .quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+    return f"€{dec}"
+
+
+@login_required
+@permission_required("orders.view_fulfillment", raise_exception=True)
 def order_picklist_pdf(request, order_id):
     order = get_object_or_404(Order.objects.prefetch_related("items__product"), pk=order_id)
+    _ensure_paid_or_superuser(order, request.user)
 
-    # Response setup
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="picklist_order_{order.id}.pdf"'
 
-    # Create doc
     doc = SimpleDocTemplate(
         response,
         pagesize=A4,
@@ -292,7 +331,7 @@ def order_picklist_pdf(request, order_id):
         elements.append(Image(logo_path, width=120, height=50))
     elements.append(Spacer(1, 20))
 
-    # Title
+    # Title + info
     styles = getSampleStyleSheet()
     title_style = styles["Heading1"]
     normal = styles["Normal"]
@@ -300,7 +339,6 @@ def order_picklist_pdf(request, order_id):
     elements.append(Paragraph(f"Picklist for Order #{order.id}", title_style))
     elements.append(Spacer(1, 6))
 
-    # Customer / Status / Contact / Address
     full_name = getattr(order, "full_name", None) or (order.user.username if getattr(order, "user", None) else "Guest")
     email = getattr(order, "email", None) or "—"
     phone = getattr(order, "phone", None) or getattr(order, "phone_number", None) or "—"
@@ -313,40 +351,71 @@ def order_picklist_pdf(request, order_id):
     elements.append(Paragraph(f"<b>Ship to:</b> {ship_to}", normal))
     elements.append(Spacer(1, 14))
 
-    # Table header
-    data = [["", "Qty", "Product", "Grind", "Weight (g)"]]
+    # Table header (added Unit € and Line €)
+    data = [["", "Qty", "Product", "Grind", "Weight (g)", "Unit €", "Line €"]]
 
-    # Coffee bean icon path
     bean_icon = os.path.join(settings.BASE_DIR, "static/branding/bean.png")
     bean_exists = os.path.exists(bean_icon)
 
+    total_qty = 0
+    grand_total = Decimal("0.00")
+
     for item in order.items.all():
         icon = Image(bean_icon, width=12, height=12) if bean_exists else ""
+        unit = item.unit_price or Decimal("0.00")
+        line = (unit * (item.quantity or 0)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        total_qty += (item.quantity or 0)
+        grand_total += line
+
         data.append([
             icon,
             str(item.quantity),
             item.product_name_snapshot,
             item.grind or "-",
             str(item.weight_grams),
+            _fmt_money(unit),
+            _fmt_money(line),
         ])
 
-    # Build table
-    table = Table(data, colWidths=[20, 40, 220, 100, 80])
+    # Totals row
+    data.append([
+        "", "", "", "", Paragraph("<b>Totals</b>", normal),
+        "", Paragraph(f"<b>{_fmt_money(grand_total)}</b>", normal)
+    ])
+
+    # Build table (wider, to fit currency cols)
+    table = Table(data, colWidths=[20, 36, 180, 80, 70, 60, 70])
     table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#6F4E37")),  # coffee brown
+        # Header
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#6F4E37")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-        ("ALIGN", (1, 1), (-1, -1), "CENTER"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
         ("FONTSIZE", (0, 0), (-1, 0), 12),
         ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
-        ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+
+        # Body
+        ("BACKGROUND", (0, 1), (-1, -2), colors.beige),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-        ("LEFTPADDING", (0, 1), (0, -1), 6),  # a bit of space for the icon
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+
+        # Alignment
+        ("ALIGN", (1, 1), (1, -2), "CENTER"),  # Qty
+        ("ALIGN", (5, 1), (6, -2), "RIGHT"),   # currency cols
+        ("ALIGN", (6, -1), (6, -1), "RIGHT"),  # grand total
+
+        # Totals row styling
+        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#EEE6DD")),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+        ("LINEABOVE", (0, -1), (-1, -1), 1, colors.grey),
     ]))
     elements.append(table)
 
-    # Build PDF with footer on every page
+    # Summary under the table
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph(f"<b>Total items:</b> {total_qty}", normal))
+    elements.append(Paragraph(f"<b>Grand total:</b> {_fmt_money(grand_total)}", normal))
+
+    # Build with footer on each page
     doc.build(elements, onFirstPage=_draw_footer, onLaterPages=_draw_footer)
     return response
 
@@ -361,3 +430,27 @@ def _draw_footer(canvas, doc):
     canvas.drawString(2 * cm, 2.2 * cm, "Versöhnung und Vergebung Kaffee – Hopfauerstraße 33, 70563 Stuttgart, Germany")
     canvas.drawString(2 * cm, 1.7 * cm, "Thank you for choosing Versöhnung und Vergebung Kaffee!")
     canvas.restoreState()
+
+
+def _ensure_paid_or_superuser(order, user):
+    if order.status == "paid":
+        return
+    if user.is_superuser:
+        return
+    # Hide details if not paid
+    raise Http404("Order not available")
+
+
+@login_required
+@permission_required("orders.view_fulfillment", raise_exception=True)
+def fulfillment_paid_orders(request):
+    qs = (Order.objects
+          .filter(status="paid")
+          .order_by("-created_at")
+          .prefetch_related("items"))
+    # Optional filters
+    q = request.GET.get("q")
+    if q:
+        qs = qs.filter(full_name__icontains=q) | qs.filter(email__icontains=q)
+
+    return render(request, "orders/fulfillment_list.html", {"orders": qs})

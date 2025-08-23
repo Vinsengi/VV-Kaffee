@@ -19,6 +19,8 @@ urlpatterns = [
         order_picklist_pdf,
         name="order_picklist_pdf"
     ),
+    path("staff/fulfillment/", views.fulfillment_paid_orders, name="fulfillment_paid_orders"),
+
 
 
 ]
