@@ -1,11 +1,27 @@
-from django.contrib import messages
+# orders/views.py
+import stripe
+from decimal import Decimal, ROUND_HALF_UP
+from django.conf import settings
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
-from django.shortcuts import redirect, render
+
+from django.contrib import messages
+
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+
 from products.models import Product
 from cart.utils import cart_from_session, compute_summary
 from .forms import CheckoutForm
 from .models import Order, OrderItem
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+def _to_cents(amount_decimal: Decimal) -> int:
+    # Quantize first to avoid float rounding issues
+    amt = amount_decimal.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    return int((amt * 100).to_integral_value(rounding=ROUND_HALF_UP))
 
 @transaction.atomic
 def checkout(request):
@@ -17,7 +33,7 @@ def checkout(request):
     if request.method == "POST":
         form = CheckoutForm(request.POST)
         if form.is_valid():
-            # Create order shell
+            # 1) Create Order (pending)
             order = Order.objects.create(
                 user=request.user if request.user.is_authenticated else None,
                 full_name=form.cleaned_data["full_name"],
@@ -28,13 +44,11 @@ def checkout(request):
                 city=form.cleaned_data["city"],
                 postal_code=form.cleaned_data["postal_code"],
                 country=form.cleaned_data.get("country", "Germany"),
-                status="new",
+                status="pending",
             )
 
-            # Build items & totals once
+            # 2) Copy items from session cart into OrderItems + compute totals
             items, subtotal, shipping, total = compute_summary(cart)
-
-            # Create order items and (optionally) decrement stock
             for item in items:
                 try:
                     product = Product.objects.get(slug=item["slug"], is_active=True)
@@ -52,38 +66,142 @@ def checkout(request):
                     weight_grams=item["weight_grams"] or product.weight_grams,
                 )
 
-                if product.stock is not None:
-                    product.stock = max(0, product.stock - item["quantity"])
-                    product.save(update_fields=["stock"])
-
             order.subtotal = subtotal
             order.shipping = shipping
             order.total = total
             order.save(update_fields=["subtotal", "shipping", "total"])
 
-            # Clear session cart
+            # 3) Create PaymentIntent
+            intent = stripe.PaymentIntent.create(
+                amount=_to_cents(order.total),
+                currency="eur",
+                metadata={
+                    "order_id": str(order.id),
+                    "email": order.email,
+                },
+                receipt_email=order.email,
+                # automatic_payment_methods is easiest for test
+                automatic_payment_methods={"enabled": True},
+            )
+            order.payment_intent_id = intent.id
+            order.save(update_fields=["payment_intent_id"])
+
+            # 4) Clear session cart now (or keep until paid; choose your preference)
             request.session["cart"] = {}
             request.session.modified = True
 
-            messages.success(request, f"Order #{order.id} created! (Status: {order.status})")
-            return redirect(reverse("orders:thank_you", kwargs={"order_id": order.id}))
+            # 5) Go to pay page to render Payment Element
+            return redirect("orders:pay", order_id=order.id)
     else:
         form = CheckoutForm()
 
     items, subtotal, shipping, total = compute_summary(cart)
     return render(request, "orders/checkout.html", {
-        "form": form,
-        "items": items,
-        "subtotal": subtotal,
-        "shipping": shipping,
-        "total": total,
+        "form": form, "items": items, "subtotal": subtotal, "shipping": shipping, "total": total,
+    })
+
+
+def pay(request, order_id: int):
+    order = get_object_or_404(Order, pk=order_id)
+    if not order.payment_intent_id:
+        messages.error(request, "Payment not initialized for this order.")
+        return redirect("orders:checkout")
+
+    intent = stripe.PaymentIntent.retrieve(order.payment_intent_id)
+    client_secret = intent.client_secret
+
+    return render(request, "orders/pay.html", {
+        "order": order,
+        "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
+        "client_secret": client_secret,
     })
 
 
 def thank_you(request, order_id: int):
-    try:
-        order = Order.objects.get(pk=order_id)
-    except Order.DoesNotExist:
-        messages.error(request, "Order not found.")
-        return redirect("home")
+    order = get_object_or_404(Order, pk=order_id)
     return render(request, "orders/thank_you.html", {"order": order})
+
+
+# --- Webhook to confirm payment server-side (recommended) ---
+
+# orders/views.py
+
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+@csrf_exempt  # Stripe posts from outside; skip CSRF
+@transaction.atomic
+def stripe_webhook(request):
+    # 1) Read raw payload and signature header
+    payload = request.body
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
+    webhook_secret = settings.STRIPE_WEBHOOK_SECRET
+
+    if not webhook_secret:
+        # Misconfiguration: you forgot to set whsec in .env
+        return HttpResponseBadRequest("Missing webhook secret")
+
+    # 2) Verify signature and construct the event
+    try:
+        event = stripe.Webhook.construct_event(
+            payload=payload,
+            sig_header=sig_header,
+            secret=webhook_secret,
+        )
+    except ValueError:
+        # Invalid JSON
+        return HttpResponseBadRequest("Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        # Invalid signature
+        return HttpResponseBadRequest("Invalid signature")
+
+    # 3) Handle the event types you care about
+    etype = event["type"]
+
+    if etype == "payment_intent.succeeded":
+        intent = event["data"]["object"]
+        order_id = (intent.get("metadata") or {}).get("order_id")
+        if order_id:
+            try:
+                order = Order.objects.select_for_update().get(pk=order_id)
+            except Order.DoesNotExist:
+                return HttpResponse(status=200)  # Nothing to do; acknowledge
+
+            # Mark order as paid if not already
+            if order.status != "paid":
+                # 1) Decrement stock for each item
+                items = order.items.select_related("product").all()  # adjust related_name if different
+                for oi in items:
+                    product = oi.product
+                    if product and product.stock is not None:
+                        new_stock = max(0, product.stock - oi.quantity)
+                        if new_stock != product.stock:
+                            product.stock = new_stock
+                            product.save(update_fields=["stock"])
+
+                # 2) Mark order as paid
+                order.status = "paid"
+                order.save(update_fields=["status"])
+        return HttpResponse(status=200)
+
+    elif etype == "payment_intent.payment_failed":
+        intent = event["data"]["object"]
+        order_id = (intent.get("metadata") or {}).get("order_id")
+        if order_id:
+            try:
+                order = Order.objects.select_for_update().get(pk=order_id)
+            except Order.DoesNotExist:
+                return HttpResponse(status=200)
+            if order.status not in ("paid", "refunded"):
+                order.status = "failed"
+                order.save(update_fields=["status"])
+        return HttpResponse(status=200)
+
+    elif etype == "charge.refunded":
+        charge = event["data"]["object"]
+        # If you stored charge_id on the order, you could look it up here.
+        # For now, no-op; add logic later if you support refunds sync.
+        return HttpResponse(status=200)
+
+    # 4) For all other events, just acknowledge
+    return HttpResponse(status=200)

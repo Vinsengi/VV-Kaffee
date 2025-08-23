@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
+from orders.views import stripe_webhook
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,4 +25,5 @@ urlpatterns = [
     path('shop/', include('products.urls', namespace='products')),
     path("cart/", include("cart.urls", namespace="cart")),
     path("", include("orders.urls", namespace="orders")),
+    path("webhook/stripe/", stripe_webhook, name="stripe_webhook"),
 ]
