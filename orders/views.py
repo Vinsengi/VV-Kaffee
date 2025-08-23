@@ -1,4 +1,6 @@
 # orders/views.py
+import json
+import logging
 import stripe
 from decimal import Decimal, ROUND_HALF_UP
 from django.conf import settings
@@ -17,7 +19,10 @@ from .forms import CheckoutForm
 from .models import Order, OrderItem
 from django.contrib.admin.views.decorators import staff_member_required
 
+
+logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY
+
 
 def _to_cents(amount_decimal: Decimal) -> int:
     # Quantize first to avoid float rounding issues
@@ -145,11 +150,30 @@ def pay(request, order_id: int):
 
 
 def thank_you(request, order_id: int):
-    order = get_object_or_404(
-        Order.objects.prefetch_related("items__product"),
-        pk=order_id
-    )
+    order = get_object_or_404(Order.objects.prefetch_related("items__product"), pk=order_id)
+
+    # Fallback: if not paid, verify PI directly
+    if order.status != "paid":
+        pi_id = request.GET.get("payment_intent") or order.payment_intent_id
+        if pi_id:
+            try:
+                pi = stripe.PaymentIntent.retrieve(pi_id)
+                if pi.status == "succeeded":
+                    for oi in order.items.select_related("product").all():
+                        p = oi.product
+                        if p and p.stock is not None:
+                            new_stock = max(0, p.stock - oi.quantity)
+                            if new_stock != p.stock:
+                                p.stock = new_stock
+                                p.save(update_fields=["stock"])
+                    order.status = "paid"
+                    order.save(update_fields=["status"])
+                    logger.warning("Order %s reconciled to PAID on thank_you", order.id)
+            except Exception as e:
+                logger.exception("Thank_you reconcile error: %s", e)
+
     return render(request, "orders/thank_you.html", {"order": order})
+
 
 
 # --- Webhook to confirm payment server-side (recommended) ---
@@ -157,83 +181,58 @@ def thank_you(request, order_id: int):
 # orders/views.py
 
 
-stripe.api_key = settings.STRIPE_SECRET_KEY
 
 @csrf_exempt  # Stripe posts from outside; skip CSRF
 @transaction.atomic
 def stripe_webhook(request):
-    # 1) Read raw payload and signature header
+    # 1) Verify signature
     payload = request.body
-    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
-    webhook_secret = settings.STRIPE_WEBHOOK_SECRET
-
-    if not webhook_secret:
-        # Misconfiguration: you forgot to set whsec in .env
-        return HttpResponseBadRequest("Missing webhook secret")
-
-    # 2) Verify signature and construct the event
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE")
+    endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
     try:
-        event = stripe.Webhook.construct_event(
-            payload=payload,
-            sig_header=sig_header,
-            secret=webhook_secret,
-        )
+        event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
     except ValueError:
-        # Invalid JSON
+        logger.warning("Stripe webhook: invalid payload")
         return HttpResponseBadRequest("Invalid payload")
     except stripe.error.SignatureVerificationError:
-        # Invalid signature
+        logger.warning("Stripe webhook: invalid signature")
         return HttpResponseBadRequest("Invalid signature")
 
-    # 3) Handle the event types you care about
     etype = event["type"]
+    logger.warning("Stripe webhook received: %s", etype)
 
+    # 2) Handle PI success (Payment Element flow)
     if etype == "payment_intent.succeeded":
         intent = event["data"]["object"]
-        order_id = (intent.get("metadata") or {}).get("order_id")
-        if order_id:
-            try:
-                order = Order.objects.select_for_update().get(pk=order_id)
-            except Order.DoesNotExist:
-                return HttpResponse(status=200)  # Nothing to do; acknowledge
+        metadata = intent.get("metadata") or {}
+        order_id = metadata.get("order_id")
+        if not order_id:
+            logger.warning("No order_id in PI %s metadata", intent.get("id"))
+            return HttpResponse(status=200)
 
-            # Mark order as paid if not already
-            if order.status != "paid":
-                # 1) Decrement stock for each item
-                items = order.items.select_related("product").all()  # adjust related_name if different
-                for oi in items:
-                    product = oi.product
-                    if product and product.stock is not None:
-                        new_stock = max(0, product.stock - oi.quantity)
-                        if new_stock != product.stock:
-                            product.stock = new_stock
-                            product.save(update_fields=["stock"])
+        try:
+            order = Order.objects.select_for_update().get(pk=order_id)
+        except Order.DoesNotExist:
+            logger.warning("Order %s not found for PI %s", order_id, intent.get("id"))
+            return HttpResponse(status=200)
 
-                # 2) Mark order as paid
-                order.status = "paid"
-                order.save(update_fields=["status"])
+        if order.status != "paid":
+            # decrement stock
+            for oi in order.items.select_related("product").all():
+                p = oi.product
+                if p and p.stock is not None:
+                    new_stock = max(0, p.stock - oi.quantity)
+                    if new_stock != p.stock:
+                        p.stock = new_stock
+                        p.save(update_fields=["stock"])
+
+            order.status = "paid"
+            order.save(update_fields=["status"])
+            logger.warning("Order %s marked PAID and stock adjusted", order.id)
+
         return HttpResponse(status=200)
 
-    elif etype == "payment_intent.payment_failed":
-        intent = event["data"]["object"]
-        order_id = (intent.get("metadata") or {}).get("order_id")
-        if order_id:
-            try:
-                order = Order.objects.select_for_update().get(pk=order_id)
-            except Order.DoesNotExist:
-                return HttpResponse(status=200)
-            if order.status not in ("paid", "refunded"):
-                order.status = "failed"
-                order.save(update_fields=["status"])
-        return HttpResponse(status=200)
-
-    elif etype == "charge.refunded":
-        charge = event["data"]["object"]
-        # If you stored charge_id on the order, you could look it up here.
-        # For now, no-op; add logic later if you support refunds sync.
-        return HttpResponse(status=200)
-
-    # 4) For all other events, just acknowledge
+    # 3) Ignore other events
     return HttpResponse(status=200)
 
 
