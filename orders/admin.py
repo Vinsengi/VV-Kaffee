@@ -92,6 +92,3 @@ class OrderAdmin(admin.ModelAdmin):
         url = reverse("orders:order_picklist_pdf", args=[obj.id])
         return format_html('<a class="button" href="{}" target="_blank">📄 PDF Picklist</a>', url)
     picklist_pdf_link.short_description = "Picklist PDF"
-
-
-# admin.site.register(Order, OrderAdmin)
