@@ -35,9 +35,17 @@
           <td>€{{ o.total|floatformat:2 }}</td>
           <td>{{ o.created_at|date:"Y-m-d H:i" }}</td>
           <td>
-            <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{% url 'orders:order_picklist' o.id %}">View</a>
-            <a class="btn btn-sm btn-primary" target="_blank" href="{% url 'orders:order_picklist_pdf' o.id %}">PDF</a>
-          </td>
+          <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{% url 'orders:order_picklist' o.id %}">View</a>
+          <a class="btn btn-sm btn-primary" target="_blank" href="{% url 'orders:order_picklist_pdf' o.id %}">PDF</a>
+
+          {% if o.status in 'pending_fulfillment paid' %}
+          <form method="post" action="{% url 'orders:mark_order_fulfilled' o.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-success" type="submit">Mark Fulfilled</button>
+          </form>
+          {% endif %}
+        </td>
+
         </tr>
         {% empty %}
         <tr><td colspan="7" class="text-muted text-center">No paid orders.</td></tr>

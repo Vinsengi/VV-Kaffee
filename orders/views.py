@@ -40,6 +40,7 @@ from django.http import HttpResponseForbidden, Http404
 
 from django.utils import timezone
 from django.db.models import F
+from django.views.decorators.http import require_POST
 
 
 logger = logging.getLogger(__name__)
@@ -282,6 +283,10 @@ def order_picklist(request, order_id):
     )
     _ensure_paid_or_superuser(order, request.user)
 
+    # inside order_picklist / order_picklist_pdf
+    if order.status not in ("pending_fulfillment", "paid") and not request.user.is_superuser:
+        raise Http404
+
     total_qty = 0
     total_weight = 0
     grand_total = Decimal("0.00")
@@ -325,6 +330,8 @@ def order_picklist_pdf(request, order_id):
     )
     elements = []
 
+    if order.status not in ("pending_fulfillment", "paid") and not request.user.is_superuser:
+        raise Http404
     # Logo
     logo_path = os.path.join(settings.BASE_DIR, "static/branding/logo.png")
     if os.path.exists(logo_path):
@@ -454,3 +461,18 @@ def fulfillment_paid_orders(request):
         qs = qs.filter(full_name__icontains=q) | qs.filter(email__icontains=q)
 
     return render(request, "orders/fulfillment_list.html", {"orders": qs})
+
+
+@login_required
+@permission_required("orders.change_fulfillment_status", raise_exception=True)
+@require_POST
+def mark_order_fulfilled(request, order_id):
+    order = get_object_or_404(Order, pk=order_id)
+    if order.status not in ("pending_fulfillment", "paid"):
+        # Ignore or show error if it’s not in a packable state
+        return redirect("orders:fulfillment_paid_orders")
+
+    order.status = "fulfilled"
+    order.fulfilled_at = timezone.now()
+    order.save(update_fields=["status", "fulfilled_at"])
+    return redirect("orders:fulfillment_paid_orders")
