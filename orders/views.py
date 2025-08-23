@@ -19,6 +19,8 @@ from .forms import CheckoutForm
 from .models import Order, OrderItem
 from django.contrib.admin.views.decorators import staff_member_required
 
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
 
 logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -176,12 +178,6 @@ def thank_you(request, order_id: int):
 
 
 
-# --- Webhook to confirm payment server-side (recommended) ---
-
-# orders/views.py
-
-
-
 @csrf_exempt  # Stripe posts from outside; skip CSRF
 @transaction.atomic
 def stripe_webhook(request):
@@ -240,3 +236,50 @@ def stripe_webhook(request):
 def order_picklist(request, order_id):
     order = get_object_or_404(Order.objects.prefetch_related("items__product"), pk=order_id)
     return render(request, "orders/picklist.html", {"order": order})
+
+
+def order_picklist_pdf(request, order_id):
+    order = Order.objects.prefetch_related("items__product").get(id=order_id)
+
+    # Create PDF response
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = f'inline; filename="picklist_order_{order.id}.pdf"'
+
+    # Setup canvas
+    p = canvas.Canvas(response, pagesize=A4)
+    width, height = A4
+
+    y = height - 50
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(50, y, f"Picklist for Order #{order.id}")
+
+    y -= 40
+    p.setFont("Helvetica", 12)
+    p.drawString(50, y, f"Customer: {order.user.username if order.user else 'Guest'}")
+    y -= 20
+    p.drawString(50, y, f"Status: {order.get_status_display()}")
+    y -= 40
+
+    # Table header
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, y, "Qty")
+    p.drawString(100, y, "Product")
+    p.drawString(300, y, "Grind")
+    p.drawString(400, y, "Weight (g)")
+    y -= 20
+
+    # Table rows
+    p.setFont("Helvetica", 12)
+    for item in order.items.all():
+        p.drawString(50, y, str(item.quantity))
+        p.drawString(100, y, item.product_name_snapshot)
+        p.drawString(300, y, item.grind or "-")
+        p.drawString(400, y, str(item.weight_grams))
+        y -= 20
+        if y < 50:
+            p.showPage()
+            y = height - 50
+
+    p.showPage()
+    p.save()
+    return response
