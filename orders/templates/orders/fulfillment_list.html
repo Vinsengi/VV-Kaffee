@@ -37,6 +37,8 @@
           <td>
           <a class="btn btn-sm btn-outline-secondary" target="_blank" href="{% url 'orders:order_picklist' o.id %}">View</a>
           <a class="btn btn-sm btn-primary" target="_blank" href="{% url 'orders:order_picklist_pdf' o.id %}">PDF</a>
+          <a href="{% url 'orders:fulfillment_recent' %}" class="btn btn-outline-secondary">View Recently Fulfilled Orders</a>
+
 
           {% if o.status in 'pending_fulfillment paid' %}
           <form method="post" action="{% url 'orders:mark_order_fulfilled' o.id %}" style="display:inline;">

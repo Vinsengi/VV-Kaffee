@@ -35,13 +35,13 @@ from reportlab.platypus import (
 import os
 from reportlab.lib.units import cm
 
-from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
 from django.http import HttpResponseForbidden, Http404
 
 from django.utils import timezone
 from django.db.models import F
 from django.views.decorators.http import require_POST
-
+from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -273,6 +273,11 @@ def _format_address(order):
     return ", ".join(parts) if parts else "—"
 
 
+def is_fulfiller(user):
+    # member of the “Fulfillment Department” group
+    return user.is_authenticated and user.groups.filter(name="Fulfillment Department").exists()
+
+
 @login_required
 @permission_required("orders.view_fulfillment", raise_exception=True)
 @staff_member_required
@@ -448,22 +453,63 @@ def _ensure_paid_or_superuser(order, user):
     raise Http404("Order not available")
 
 
+def is_fulfiller(user):
+    # member of the “Fulfillment Department” group
+    return user.is_authenticated and user.groups.filter(name="Fulfillment Department").exists()
+
+
+@login_required
+@permission_required("orders.view_fulfillment", raise_exception=True)
+@staff_member_required
+def order_picklist(request, order_id):
+    order = get_object_or_404(
+        Order.objects.prefetch_related("items__product"),
+        pk=order_id
+    )
+    _ensure_paid_or_superuser(order, request.user)
+
+    # inside order_picklist / order_picklist_pdf
+    if order.status not in ("pending_fulfillment", "paid") and not request.user.is_superuser:
+        raise Http404
+
+    total_qty = 0
+    total_weight = 0
+    grand_total = Decimal("0.00")
+
+    for oi in order.items.all():
+        qty = oi.quantity or 0
+        unit = oi.unit_price or Decimal("0.00")
+        total_qty += qty
+        total_weight += qty * (oi.weight_grams or 0)
+        grand_total += unit * qty
+
+    context = {
+        "order": order,
+        "total_qty": total_qty,
+        "total_weight": total_weight,     # grams
+        "grand_total": grand_total,
+    }
+    return render(request, "orders/picklist.html", context)
+
+
+PACKABLE_STATUSES = ["paid"]
+
+
 @login_required
 @permission_required("orders.view_fulfillment", raise_exception=True)
 def fulfillment_paid_orders(request):
-    qs = (Order.objects
-          .filter(status="paid")
-          .order_by("-created_at")
-          .prefetch_related("items"))
-    # Optional filters
+    orders = (Order.objects
+              .filter(status__in=PACKABLE_STATUSES)
+              .order_by("-created_at")
+              .prefetch_related("items"))
     q = request.GET.get("q")
     if q:
-        qs = qs.filter(full_name__icontains=q) | qs.filter(email__icontains=q)
-
-    return render(request, "orders/fulfillment_list.html", {"orders": qs})
+        orders = orders.filter(full_name__icontains=q) | orders.filter(email__icontains=q)
+    return render(request, "orders/fulfillment_list.html", {"orders": orders})
 
 
 @login_required
+@user_passes_test(is_fulfiller)
 @permission_required("orders.change_fulfillment_status", raise_exception=True)
 @require_POST
 def mark_order_fulfilled(request, order_id):
@@ -476,3 +522,12 @@ def mark_order_fulfilled(request, order_id):
     order.fulfilled_at = timezone.now()
     order.save(update_fields=["status", "fulfilled_at"])
     return redirect("orders:fulfillment_paid_orders")
+
+
+@login_required
+def fulfillment_recently_fulfilled(request):
+    orders = (Order.objects
+              .filter(status="fulfilled")
+              .order_by("-created_at")[:20]      # last 20
+              .prefetch_related("items"))
+    return render(request, "orders/fulfillment_recent.html", {"orders": orders})
