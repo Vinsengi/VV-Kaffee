@@ -1,12 +1,15 @@
-from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.http import HttpResponseRedirect
 
 
 @login_required
 def post_login_redirect(request):
-    u = request.user
-    if u.groups.filter(name="Fulfillment Department").exists():
-        return redirect(reverse("orders:fulfillment_paid_orders"))
-    return redirect("/")  # or profiles:dashboard for regular users
+    # # Fulfillment staff go to the paid orders screen
+    # if request.user.groups.filter(name="Fulfillment Department").exists():
+    #     return redirect("/staff/fulfillment/")
+
+    # # Everyone else – adjust as you like
+    # return redirect("/")
+    return HttpResponseRedirect("/staff/fulfillment/")
+

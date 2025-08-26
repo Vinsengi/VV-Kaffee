@@ -509,7 +509,7 @@ def fulfillment_paid_orders(request):
 
 
 @login_required
-@user_passes_test(is_fulfiller)
+# @user_passes_test(is_fulfiller)
 @permission_required("orders.change_fulfillment_status", raise_exception=True)
 @require_POST
 def mark_order_fulfilled(request, order_id):

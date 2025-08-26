@@ -52,6 +52,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "versohnung_und_vergebung_kaffee.middleware.fulfillment_redirect.FulfillmentPostLoginMiddleware",
+
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -148,5 +150,6 @@ LOGGING = {
 }
 
 
-LOGIN_REDIRECT_URL = reverse_lazy("post_login_redirect")
-LOGOUT_REDIRECT_URL = "/"                               
+LOGIN_REDIRECT_URL = "/post-login/"
+LOGIN_URL = "/accounts/login/"
+
