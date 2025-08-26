@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.utils.text import slugify
 from decimal import Decimal
 
+
 class Category(models.Model):
     name = models.CharField(max_length=80, unique=True)
     slug = models.SlugField(max_length=90, unique=True, blank=True)

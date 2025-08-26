@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
-
+from profiles.views import post_login_redirect
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,5 +25,6 @@ urlpatterns = [
     path('shop/', include('products.urls', namespace='products')),
     path("cart/", include("cart.urls", namespace="cart")),
     path("", include(("orders.urls", "orders"), namespace="orders")),
-    
+    path("accounts/", include("django.contrib.auth.urls")),
+    path("post-login/", post_login_redirect, name="post_login_redirect"),
 ]

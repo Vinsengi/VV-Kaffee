@@ -22,6 +22,27 @@ from django.contrib.admin.views.decorators import staff_member_required
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle,
+    Image,
+)
+import os
+from reportlab.lib.units import cm
+
+from django.contrib.auth.decorators import login_required, permission_required, user_passes_test
+from django.http import HttpResponseForbidden, Http404
+
+from django.utils import timezone
+from django.db.models import F
+from django.views.decorators.http import require_POST
+from datetime import timedelta
+
 logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -232,54 +253,281 @@ def stripe_webhook(request):
     return HttpResponse(status=200)
 
 
+def _format_address(order):
+    """Safely join address parts into a single line."""
+    parts = []
+    line1 = getattr(order, "address_line1", None)
+    line2 = getattr(order, "address_line2", None)
+    city = getattr(order, "city", None)
+    postal = getattr(order, "postal_code", None)
+    country = getattr(order, "country", None)
+    if line1:
+        parts.append(line1)
+    if line2:
+        parts.append(line2)
+    town = " ".join(p for p in [postal, city] if p)
+    if town:
+        parts.append(town)
+    if country:
+        parts.append(country)
+    return ", ".join(parts) if parts else "—"
+
+
+def is_fulfiller(user):
+    # member of the “Fulfillment Department” group
+    return user.is_authenticated and user.groups.filter(name="Fulfillment Department").exists()
+
+
+@login_required
+@permission_required("orders.view_fulfillment", raise_exception=True)
 @staff_member_required
 def order_picklist(request, order_id):
-    order = get_object_or_404(Order.objects.prefetch_related("items__product"), pk=order_id)
-    return render(request, "orders/picklist.html", {"order": order})
+    order = get_object_or_404(
+        Order.objects.prefetch_related("items__product"),
+        pk=order_id
+    )
+    _ensure_paid_or_superuser(order, request.user)
+
+    # inside order_picklist / order_picklist_pdf
+    if order.status not in ("pending_fulfillment", "paid") and not request.user.is_superuser:
+        raise Http404
+
+    total_qty = 0
+    total_weight = 0
+    grand_total = Decimal("0.00")
+
+    for oi in order.items.all():
+        qty = oi.quantity or 0
+        unit = oi.unit_price or Decimal("0.00")
+        total_qty += qty
+        total_weight += qty * (oi.weight_grams or 0)
+        grand_total += unit * qty
+
+    context = {
+        "order": order,
+        "total_qty": total_qty,
+        "total_weight": total_weight,     # grams
+        "grand_total": grand_total,
+    }
+    return render(request, "orders/picklist.html", context)
 
 
+def _fmt_money(value) -> str:
+    """Format numbers/Decimals as Euro currency."""
+    dec = (Decimal(value or 0)
+           .quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+    return f"€{dec}"
+
+
+@login_required
+@permission_required("orders.view_fulfillment", raise_exception=True)
 def order_picklist_pdf(request, order_id):
-    order = Order.objects.prefetch_related("items__product").get(id=order_id)
+    order = get_object_or_404(Order.objects.prefetch_related("items__product"), pk=order_id)
+    _ensure_paid_or_superuser(order, request.user)
 
-    # Create PDF response
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = f'inline; filename="picklist_order_{order.id}.pdf"'
 
-    # Setup canvas
-    p = canvas.Canvas(response, pagesize=A4)
-    width, height = A4
+    doc = SimpleDocTemplate(
+        response,
+        pagesize=A4,
+        rightMargin=40, leftMargin=40, topMargin=60, bottomMargin=60
+    )
+    elements = []
 
-    y = height - 50
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(50, y, f"Picklist for Order #{order.id}")
+    if order.status not in ("pending_fulfillment", "paid") and not request.user.is_superuser:
+        raise Http404
+    # Logo
+    logo_path = os.path.join(settings.BASE_DIR, "static/branding/logo.png")
+    if os.path.exists(logo_path):
+        elements.append(Image(logo_path, width=120, height=50))
+    elements.append(Spacer(1, 20))
 
-    y -= 40
-    p.setFont("Helvetica", 12)
-    p.drawString(50, y, f"Customer: {order.user.username if order.user else 'Guest'}")
-    y -= 20
-    p.drawString(50, y, f"Status: {order.get_status_display()}")
-    y -= 40
+    # Title + info
+    styles = getSampleStyleSheet()
+    title_style = styles["Heading1"]
+    normal = styles["Normal"]
 
-    # Table header
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(50, y, "Qty")
-    p.drawString(100, y, "Product")
-    p.drawString(300, y, "Grind")
-    p.drawString(400, y, "Weight (g)")
-    y -= 20
+    elements.append(Paragraph(f"Picklist for Order #{order.id}", title_style))
+    elements.append(Spacer(1, 6))
 
-    # Table rows
-    p.setFont("Helvetica", 12)
+    full_name = getattr(order, "full_name", None) or (order.user.username if getattr(order, "user", None) else "Guest")
+    email = getattr(order, "email", None) or "—"
+    phone = getattr(order, "phone", None) or getattr(order, "phone_number", None) or "—"
+    ship_to = _format_address(order)
+
+    elements.append(Paragraph(f"<b>Customer:</b> {full_name}", normal))
+    elements.append(Paragraph(f"<b>Email:</b> {email}", normal))
+    elements.append(Paragraph(f"<b>Phone:</b> {phone}", normal))
+    elements.append(Paragraph(f"<b>Status:</b> {order.get_status_display()}", normal))
+    elements.append(Paragraph(f"<b>Ship to:</b> {ship_to}", normal))
+    elements.append(Spacer(1, 14))
+
+    # Table header (added Unit € and Line €)
+    data = [["", "Qty", "Product", "Grind", "Weight (g)", "Unit €", "Line €"]]
+
+    bean_icon = os.path.join(settings.BASE_DIR, "static/branding/bean.png")
+    bean_exists = os.path.exists(bean_icon)
+
+    total_qty = 0
+    grand_total = Decimal("0.00")
+
     for item in order.items.all():
-        p.drawString(50, y, str(item.quantity))
-        p.drawString(100, y, item.product_name_snapshot)
-        p.drawString(300, y, item.grind or "-")
-        p.drawString(400, y, str(item.weight_grams))
-        y -= 20
-        if y < 50:
-            p.showPage()
-            y = height - 50
+        icon = Image(bean_icon, width=12, height=12) if bean_exists else ""
+        unit = item.unit_price or Decimal("0.00")
+        line = (unit * (item.quantity or 0)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        total_qty += (item.quantity or 0)
+        grand_total += line
 
-    p.showPage()
-    p.save()
+        data.append([
+            icon,
+            str(item.quantity),
+            item.product_name_snapshot,
+            item.grind or "-",
+            str(item.weight_grams),
+            _fmt_money(unit),
+            _fmt_money(line),
+        ])
+
+    # Totals row
+    data.append([
+        "", "", "", "", Paragraph("<b>Totals</b>", normal),
+        "", Paragraph(f"<b>{_fmt_money(grand_total)}</b>", normal)
+    ])
+
+    # Build table (wider, to fit currency cols)
+    table = Table(data, colWidths=[20, 36, 180, 80, 70, 60, 70])
+    table.setStyle(TableStyle([
+        # Header
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#6F4E37")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 12),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+
+        # Body
+        ("BACKGROUND", (0, 1), (-1, -2), colors.beige),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+
+        # Alignment
+        ("ALIGN", (1, 1), (1, -2), "CENTER"),  # Qty
+        ("ALIGN", (5, 1), (6, -2), "RIGHT"),   # currency cols
+        ("ALIGN", (6, -1), (6, -1), "RIGHT"),  # grand total
+
+        # Totals row styling
+        ("BACKGROUND", (0, -1), (-1, -1), colors.HexColor("#EEE6DD")),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+        ("LINEABOVE", (0, -1), (-1, -1), 1, colors.grey),
+    ]))
+    elements.append(table)
+
+    # Summary under the table
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph(f"<b>Total items:</b> {total_qty}", normal))
+    elements.append(Paragraph(f"<b>Grand total:</b> {_fmt_money(grand_total)}", normal))
+
+    # Build with footer on each page
+    doc.build(elements, onFirstPage=_draw_footer, onLaterPages=_draw_footer)
     return response
+
+
+def _draw_footer(canvas, doc):
+    """Footer on every page."""
+    canvas.saveState()
+    width, height = A4
+    canvas.setStrokeColor(colors.grey)
+    canvas.line(2 * cm, 2.6 * cm, width - 2 * cm, 2.6 * cm)
+    canvas.setFont("Helvetica-Oblique", 9)
+    canvas.drawString(2 * cm, 2.2 * cm, "Versöhnung und Vergebung Kaffee – Hopfauerstraße 33, 70563 Stuttgart, Germany")
+    canvas.drawString(2 * cm, 1.7 * cm, "Thank you for choosing Versöhnung und Vergebung Kaffee!")
+    canvas.restoreState()
+
+
+def _ensure_paid_or_superuser(order, user):
+    if order.status == "paid":
+        return
+    if user.is_superuser:
+        return
+    # Hide details if not paid
+    raise Http404("Order not available")
+
+
+def is_fulfiller(user):
+    # member of the “Fulfillment Department” group
+    return user.is_authenticated and user.groups.filter(name="Fulfillment Department").exists()
+
+
+@login_required
+@permission_required("orders.view_fulfillment", raise_exception=True)
+@staff_member_required
+def order_picklist(request, order_id):
+    order = get_object_or_404(
+        Order.objects.prefetch_related("items__product"),
+        pk=order_id
+    )
+    _ensure_paid_or_superuser(order, request.user)
+
+    # inside order_picklist / order_picklist_pdf
+    if order.status not in ("pending_fulfillment", "paid") and not request.user.is_superuser:
+        raise Http404
+
+    total_qty = 0
+    total_weight = 0
+    grand_total = Decimal("0.00")
+
+    for oi in order.items.all():
+        qty = oi.quantity or 0
+        unit = oi.unit_price or Decimal("0.00")
+        total_qty += qty
+        total_weight += qty * (oi.weight_grams or 0)
+        grand_total += unit * qty
+
+    context = {
+        "order": order,
+        "total_qty": total_qty,
+        "total_weight": total_weight,     # grams
+        "grand_total": grand_total,
+    }
+    return render(request, "orders/picklist.html", context)
+
+
+PACKABLE_STATUSES = ["paid"]
+
+
+@login_required
+@permission_required("orders.view_fulfillment", raise_exception=True)
+def fulfillment_paid_orders(request):
+    orders = (Order.objects
+              .filter(status__in=PACKABLE_STATUSES)
+              .order_by("-created_at")
+              .prefetch_related("items"))
+    q = request.GET.get("q")
+    if q:
+        orders = orders.filter(full_name__icontains=q) | orders.filter(email__icontains=q)
+    return render(request, "orders/fulfillment_list.html", {"orders": orders})
+
+
+@login_required
+# @user_passes_test(is_fulfiller)
+@permission_required("orders.change_fulfillment_status", raise_exception=True)
+@require_POST
+def mark_order_fulfilled(request, order_id):
+    order = get_object_or_404(Order, pk=order_id)
+    if order.status not in ("pending_fulfillment", "paid"):
+        # Ignore or show error if it’s not in a packable state
+        return redirect("orders:fulfillment_paid_orders")
+
+    order.status = "fulfilled"
+    order.fulfilled_at = timezone.now()
+    order.save(update_fields=["status", "fulfilled_at"])
+    return redirect("orders:fulfillment_paid_orders")
+
+
+@login_required
+def fulfillment_recently_fulfilled(request):
+    orders = (Order.objects
+              .filter(status="fulfilled")
+              .order_by("-created_at")[:20]      # last 20
+              .prefetch_related("items"))
+    return render(request, "orders/fulfillment_recent.html", {"orders": orders})

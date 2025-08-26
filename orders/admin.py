@@ -84,14 +84,12 @@ class OrderAdmin(admin.ModelAdmin):
     reference_display.short_description = "Reference"
 
     def picklist_link(self, obj):
-        url = reverse("orders:order_picklist", kwargs={"order_id": obj.id})
-        return format_html('<a class="button" target="_blank" href="{}">Picklist</a>', url)
-    picklist_link.short_description = " "
+        url = reverse("orders:order_picklist", args=[obj.id])
+        return format_html('<a href="{}" target="_blank">🧾 Picklist</a>', url)
+    picklist_link.short_description = "Picklist"
+    list_display = ("id", "full_name", "status", "total", "picklist_link", "picklist_pdf_link")
 
     def picklist_pdf_link(self, obj):
         url = reverse("orders:order_picklist_pdf", args=[obj.id])
         return format_html('<a class="button" href="{}" target="_blank">📄 PDF Picklist</a>', url)
     picklist_pdf_link.short_description = "Picklist PDF"
-
-
-# admin.site.register(Order, OrderAdmin)

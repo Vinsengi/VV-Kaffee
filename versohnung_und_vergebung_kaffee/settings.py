@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 from decouple import config
+from django.urls import reverse_lazy
+
 
 # Optional: only used if you set DATABASE_URL for Postgres
 try:
@@ -50,6 +52,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "versohnung_und_vergebung_kaffee.middleware.fulfillment_redirect.FulfillmentPostLoginMiddleware",
+
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -144,3 +148,8 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": "WARNING"},
 }
+
+
+LOGIN_REDIRECT_URL = "/post-login/"
+LOGIN_URL = "/accounts/login/"
+

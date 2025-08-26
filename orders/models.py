@@ -4,14 +4,18 @@ from django.core.validators import MinValueValidator
 from products.models import Product
 from decimal import Decimal, ROUND_HALF_UP
 
+
 class Order(models.Model):
     STATUS_CHOICES = [
         ("new", "New"),
+        ("pending_fulfillment", "Pending fulfillment"),
         ("paid", "Paid"),
         ("fulfilled", "Fulfilled"),
         ("cancelled", "Cancelled"),
         ("refunded", "Refunded"),
     ]
+    status = models.CharField(max_length=32, choices=STATUS_CHOICES, default="new")
+    fulfilled_at = models.DateTimeField(null=True, blank=True)
 
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
 
@@ -39,6 +43,10 @@ class Order(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        permissions = [
+            ("view_fulfillment", "Can access fulfillment (paid picklists)"),
+            ("change_fulfillment_status", "Can mark orders fulfilled"),
+        ]
 
     def __str__(self):
         return f"Order #{self.id} - {self.full_name}"
