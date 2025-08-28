@@ -1,5 +1,5 @@
 <p>Hi {{ order.full_name|default:"there" }},</p>
-<p>Your payment for order <strong>#{{ order.id }}</strong> is confirmed. We will ship to the address provided.</p>
+<p>Your payment for order <strong>#{{ order.reference }}</strong> is confirmed. We will ship to the address provided.</p>
 <p>Your paid order summary is attached as a PDF.</p>
 <p><a href="{{ site_url }}/account/orders/">View your orders</a></p>
 <p>— {{ site_name }}</p>
