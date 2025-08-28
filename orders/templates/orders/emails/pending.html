@@ -1,5 +1,5 @@
 <p>Hi {{ order.full_name|default:"there" }},</p>
-<p>Thanks for your order <strong>#{{ order.id }}</strong> at {{ site_name }}.</p>
+<p>Thanks for your order <strong>#{{ order.reference }}</strong> at {{ site_name }}.</p>
 <p>We’re awaiting payment confirmation. You’ll receive another email once the payment is confirmed.</p>
 <p><a href="{{ site_url }}/account/">Go to your account</a></p>
 <p>— {{ site_name }}</p>

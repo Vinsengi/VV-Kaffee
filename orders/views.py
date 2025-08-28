@@ -469,43 +469,7 @@ def _ensure_paid_or_superuser(order, user):
     raise Http404("Order not available")
 
 
-def is_fulfiller(user):
-    # member of the “Fulfillment Department” group
-    return user.is_authenticated and user.groups.filter(name="Fulfillment Department").exists()
 
-
-@login_required
-@permission_required("orders.view_fulfillment", raise_exception=True)
-@staff_member_required
-def order_picklist(request, order_id):
-    order = get_object_or_404(
-        Order.objects.prefetch_related("items__product"),
-        pk=order_id
-    )
-    _ensure_paid_or_superuser(order, request.user)
-
-    # inside order_picklist / order_picklist_pdf
-    if order.status not in ("pending_fulfillment", "paid") and not request.user.is_superuser:
-        raise Http404
-
-    total_qty = 0
-    total_weight = 0
-    grand_total = Decimal("0.00")
-
-    for oi in order.items.all():
-        qty = oi.quantity or 0
-        unit = oi.unit_price or Decimal("0.00")
-        total_qty += qty
-        total_weight += qty * (oi.weight_grams or 0)
-        grand_total += unit * qty
-
-    context = {
-        "order": order,
-        "total_qty": total_qty,
-        "total_weight": total_weight,     # grams
-        "grand_total": grand_total,
-    }
-    return render(request, "orders/picklist.html", context)
 
 
 PACKABLE_STATUSES = ["paid"]

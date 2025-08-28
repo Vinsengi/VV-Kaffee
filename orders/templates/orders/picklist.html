@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container py-4">
   <div class="d-flex align-items-center justify-content-between mb-3">
-    <h2 class="mb-0">Picklist for Order #{{ order.id }}</h2>
+    <h2 class="mb-0">Picklist for Order #{{ order.reference }}</h2>
     <a class="btn btn-outline-secondary" href="{% url 'orders:order_picklist_pdf' order.id %}" target="_blank">📄 Download PDF</a>
   </div>
 
