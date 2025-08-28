@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from products.models import Product
 from decimal import Decimal, ROUND_HALF_UP
+from django.conf import settings
 
 
 class Order(models.Model):
@@ -17,7 +18,7 @@ class Order(models.Model):
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default="new")
     fulfilled_at = models.DateTimeField(null=True, blank=True)
 
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
 
     # Contact & shipping (Germany-focused but generic)
     full_name = models.CharField(max_length=100)

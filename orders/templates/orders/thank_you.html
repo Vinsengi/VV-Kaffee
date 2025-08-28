@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="text-center py-4">
-  <h1>Thank you!</h1>
-  <p class="lead mb-1">Your order <strong>{{ order.reference }}</strong> was received.</p>
+  <h1>ORDER RECEIVED!</h1>
+  <p class="lead mb-1">Thank you, {{ order.user.username }}! Your order with order number <strong>{{ order.reference }}</strong> was received.</p>
   <p class="text-secondary">We’ve sent a confirmation to {{ order.email }}.</p>
 </div>
 

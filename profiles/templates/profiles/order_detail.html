@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4" style="max-width: 860px;">
+  <h2>Order #{{ order.id }}</h2>
+  <p class="text-muted">Placed: {{ order.created_at|date:"Y-m-d H:i" }} • Status: {{ order.get_status_display }}</p>
+
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead>
+        <tr><th>Product</th><th>Grind</th><th>Weight (g)</th><th>Qty</th><th>Unit €</th><th>Total €</th></tr>
+      </thead>
+      <tbody>
+        {% for it in order.items.all %}
+        <tr>
+          <td>{{ it.product_name_snapshot }}</td>
+          <td>{{ it.grind|default:"—" }}</td>
+          <td>{{ it.weight_grams }}</td>
+          <td>{{ it.quantity }}</td>
+          <td>{{ it.unit_price|floatformat:2 }}</td>
+          <td>{{ it.line_total|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><th colspan="5" class="text-end">Order total</th><th>€{{ order.total|floatformat:2 }}</th></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <h5 class="mt-4">Shipping address</h5>
+  <p class="mb-0">
+    {{ order.full_name|default:request.user.profile.full_name }}<br>
+    {{ order.address_line1|default:request.user.profile.address_line1 }}<br>
+    {% if order.address_line2 %}{{ order.address_line2 }}<br>{% endif %}
+    {{ order.postcode }} {{ order.city }}<br>
+    {{ order.country }}
+  </p>
+
+  <a class="btn btn-link mt-3" href="{% url 'profiles:order_list' %}">← Back to orders</a>
+</div>
+{% endblock %}
