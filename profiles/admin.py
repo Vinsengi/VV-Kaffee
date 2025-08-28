@@ -1,8 +1,26 @@
 from django.contrib import admin
-from .models import UserProfile
+from .models import Profile
 
-@admin.register(UserProfile)
-class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "phone_number", "city", "country")
-    search_fields = ("user__username", "user__email", "phone_number", "city", "postal_code", "country")
-    ordering = ("user__username",)
+
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    # show real fields that exist on Profile
+    list_display = (
+        "user",
+        "full_name",
+        "phone",
+        "city",
+        "postcode",
+        "country",
+        "updated_at",
+    )
+    list_filter = ("country", "city", "updated_at")
+    search_fields = (
+        "user__username",
+        "user__email",
+        "full_name",
+        "phone",
+        "city",
+        "postcode",
+    )
+

@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from decouple import config
 from django.urls import reverse_lazy
+from dotenv import load_dotenv
 
 
 # Optional: only used if you set DATABASE_URL for Postgres
@@ -11,6 +12,7 @@ except ImportError:
     dj_database_url = None
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")   # <-- loads .env into os.environ
 
 # ── Core settings ───────────────────────────────────────────────────────────────
 SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-me")  # use .env
@@ -153,3 +155,18 @@ LOGGING = {
 LOGIN_REDIRECT_URL = "/post-login/"
 LOGIN_URL = "/accounts/login/"
 
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
+
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
+
+# Optional: timeouts & fail behavior
+EMAIL_TIMEOUT = 20
+
+SITE_NAME = "Versöhnung und Vergebung Kaffee"
+SITE_URL = "http://127.0.0.1:8000"  # change in prod

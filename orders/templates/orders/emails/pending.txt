@@ -1,0 +1,8 @@
+Hi {{ order.full_name|default:"there" }},
+
+Thanks for your order #{{ order.id }} at {{ site_name }}.
+We’re awaiting payment confirmation. You’ll receive another email once the payment is confirmed.
+
+You can view your account: {{ site_url }}/account/
+
+— {{ site_name }}

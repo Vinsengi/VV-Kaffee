@@ -42,6 +42,8 @@ from django.utils import timezone
 from django.db.models import F
 from django.views.decorators.http import require_POST
 from datetime import timedelta
+from .emails import send_order_pending_email
+from .emails import send_order_paid_email
 
 logger = logging.getLogger(__name__)
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -51,6 +53,7 @@ def _to_cents(amount_decimal: Decimal) -> int:
     # Quantize first to avoid float rounding issues
     amt = amount_decimal.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     return int((amt * 100).to_integral_value(rounding=ROUND_HALF_UP))
+
 
 @transaction.atomic
 def checkout(request):
@@ -99,6 +102,14 @@ def checkout(request):
             order.shipping = shipping
             order.total = total
             order.save(update_fields=["subtotal", "shipping", "total"])
+
+            # ... inside checkout view, after order & items saved successfully:
+            try:
+                send_order_pending_email(order)
+            except Exception as e:
+                # log it, but don't block checkout
+                print("Pending email failed:", e)
+
 
             # 3) Create PaymentIntent
 
@@ -246,6 +257,11 @@ def stripe_webhook(request):
             order.status = "paid"
             order.save(update_fields=["status"])
             logger.warning("Order %s marked PAID and stock adjusted", order.id)
+            
+            try:
+                send_order_paid_email(order)
+            except Exception as e:
+                print("Paid email failed:", e)
 
         return HttpResponse(status=200)
 
