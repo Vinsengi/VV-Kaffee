@@ -7,4 +7,4 @@ class ProfilesConfig(AppConfig):
 
     def ready(self):
         # Import signals to ensure they are registered when the app is ready
-        import profiles.signals  # noqa
+        from .import signals  # noqa
