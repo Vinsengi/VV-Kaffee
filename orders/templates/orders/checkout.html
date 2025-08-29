@@ -43,18 +43,18 @@
             </div>
 
             <div class="col-md-6">
-              <label class="form-label" for="{{ form.address_line1.id_for_label }}">Address line 1</label>
-              {{ form.address_line1 }}
-              {% if form.address_line1.errors %}
-                <div class="text-danger small">{{ form.address_line1.errors }}</div>
+              <label class="form-label" for="{{ form.street.id_for_label }}">Street Name</label>
+              {{ form.street }}
+              {% if form.street.errors %}
+                <div class="text-danger small">{{ form.street.errors }}</div>
               {% endif %}
             </div>
 
             <div class="col-md-6">
-              <label class="form-label" for="{{ form.address_line2.id_for_label }}">Address line 2</label>
-              {{ form.address_line2 }}
-              {% if form.address_line2.errors %}
-                <div class="text-danger small">{{ form.address_line2.errors }}</div>
+              <label class="form-label" for="{{ form.house_number.id_for_label }}">House Number</label>
+              {{ form.house_number}}
+              {% if form.house_number.errors %}
+                <div class="text-danger small">{{ form.house_number.errors }}</div>
               {% endif %}
             </div>
 

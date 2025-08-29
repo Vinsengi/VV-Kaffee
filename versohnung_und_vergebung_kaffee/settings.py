@@ -90,6 +90,9 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
+        "OPTIONS": {
+            "timeout": 20,  # seconds
+        },
     }
 }
 
@@ -154,7 +157,7 @@ LOGGING = {
 
 LOGIN_REDIRECT_URL = "/post-login/"
 LOGIN_URL = "/accounts/login/"
-
+LOGOUT_REDIRECT_URL = "home"
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"

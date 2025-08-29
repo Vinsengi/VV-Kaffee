@@ -3,6 +3,7 @@ from django.contrib import messages
 from products.models import Product
 from .utils import cart_from_session, compute_summary, CART_SESSION_KEY, grind_label
 
+
 def cart_detail(request):
     cart = cart_from_session(request.session)
     cart_items, subtotal, shipping, total = compute_summary(cart)
@@ -14,6 +15,7 @@ def cart_detail(request):
         "total": total,
         "grind_choices": grind_choices,
     })
+
 
 def cart_add(request, slug):
     product = get_object_or_404(Product, slug=slug, is_active=True)
@@ -40,6 +42,7 @@ def cart_add(request, slug):
     messages.success(request, f"Added {qty} × {product.name} to cart.")
     return redirect("cart:detail")
 
+
 def cart_update(request, slug):
     cart = cart_from_session(request.session)
     if slug in cart:
@@ -51,6 +54,7 @@ def cart_update(request, slug):
         messages.success(request, "Cart updated.")
     return redirect("cart:detail")
 
+
 def cart_remove(request, slug):
     cart = cart_from_session(request.session)
     if slug in cart:
@@ -58,6 +62,7 @@ def cart_remove(request, slug):
         request.session.modified = True
         messages.info(request, "Item removed from cart.")
     return redirect("cart:detail")
+
 
 def cart_clear(request):
     request.session[CART_SESSION_KEY] = {}

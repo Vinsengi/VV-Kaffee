@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container py-4" style="max-width: 860px;">
-  <h2>Order #{{ order.id }}</h2>
+  <h2>Order #{{ order.reference }}</h2>
   <p class="text-muted">Placed: {{ order.created_at|date:"Y-m-d H:i" }} • Status: {{ order.get_status_display }}</p>
 
   <div class="table-responsive">
@@ -30,8 +30,8 @@
   <h5 class="mt-4">Shipping address</h5>
   <p class="mb-0">
     {{ order.full_name|default:request.user.profile.full_name }}<br>
-    {{ order.address_line1|default:request.user.profile.address_line1 }}<br>
-    {% if order.address_line2 %}{{ order.address_line2 }}<br>{% endif %}
+    {{ order.street|default:request.user.profile.street }}<br>
+    {% if order.house_number %}{{ order.house_number }}<br>{% endif %}
     {{ order.postcode }} {{ order.city }}<br>
     {{ order.country }}
   </p>

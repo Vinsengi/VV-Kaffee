@@ -8,13 +8,13 @@ class CheckoutForm(forms.Form):
                              widget=forms.EmailInput(attrs={"class": "form-control"}))
     phone_number = forms.CharField(max_length=20, required=False, label="Phone",
                                    widget=forms.TextInput(attrs={"class": "form-control"}))
-    address_line1 = forms.CharField(max_length=120, label="Address line 1",
+    street = forms.CharField(max_length=120, label="Street",
                                     widget=forms.TextInput(attrs={"class": "form-control"}))
-    address_line2 = forms.CharField(max_length=120, required=False, label="Address line 2",
+    house_number = forms.CharField(max_length=10, required=False, label="House Number",
                                     widget=forms.TextInput(attrs={"class": "form-control"}))
     city = forms.CharField(max_length=80, label="City",
                            widget=forms.TextInput(attrs={"class": "form-control"}))
-    postal_code = forms.CharField(max_length=20, label="Postal code",
+    postal_code = forms.CharField(max_length=20, label="Postal code / PLZ",
                                   widget=forms.TextInput(attrs={"class": "form-control"}))
     country = forms.CharField(max_length=60, initial="Germany", label="Country",
                               widget=forms.TextInput(attrs={"class": "form-control"}))

@@ -71,8 +71,8 @@ def checkout(request):
                 full_name=form.cleaned_data["full_name"],
                 email=form.cleaned_data["email"],
                 phone_number=form.cleaned_data.get("phone_number", ""),
-                address_line1=form.cleaned_data["address_line1"],
-                address_line2=form.cleaned_data.get("address_line2", ""),
+                street=form.cleaned_data["street"], 
+                house_number=form.cleaned_data.get("house_number", ""),
                 city=form.cleaned_data["city"],
                 postal_code=form.cleaned_data["postal_code"],
                 country=form.cleaned_data.get("country", "Germany"),
@@ -272,20 +272,20 @@ def stripe_webhook(request):
 def _format_address(order):
     """Safely join address parts into a single line."""
     parts = []
-    line1 = getattr(order, "address_line1", None)
-    line2 = getattr(order, "address_line2", None)
+    street = getattr(order, "street", None)
+    house_number = getattr(order, "house_number", None)
     city = getattr(order, "city", None)
     postal = getattr(order, "postal_code", None)
     country = getattr(order, "country", None)
-    if line1:
-        parts.append(line1)
-    if line2:
-        parts.append(line2)
+
+    if street:
+        parts.append(f"{street} {house_number or ''}".strip())
     town = " ".join(p for p in [postal, city] if p)
     if town:
         parts.append(town)
     if country:
         parts.append(country)
+
     return ", ".join(parts) if parts else "—"
 
 
@@ -342,7 +342,7 @@ def order_picklist_pdf(request, order_id):
     _ensure_paid_or_superuser(order, request.user)
 
     response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = f'inline; filename="picklist_order_{order.id}.pdf"'
+    response["Content-Disposition"] = f'inline; filename="picklist_order_{order.reference}.pdf"'
 
     doc = SimpleDocTemplate(
         response,
@@ -364,7 +364,7 @@ def order_picklist_pdf(request, order_id):
     title_style = styles["Heading1"]
     normal = styles["Normal"]
 
-    elements.append(Paragraph(f"Picklist for Order #{order.id}", title_style))
+    elements.append(Paragraph(f"Picklist for Order #{order.reference}", title_style))
     elements.append(Spacer(1, 6))
 
     full_name = getattr(order, "full_name", None) or (order.user.username if getattr(order, "user", None) else "Guest")
