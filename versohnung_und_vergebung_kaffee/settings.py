@@ -3,7 +3,7 @@ from pathlib import Path
 from decouple import config
 from django.urls import reverse_lazy
 from dotenv import load_dotenv
-
+import dj_database_url
 
 # Optional: only used if you set DATABASE_URL for Postgres
 try:
@@ -17,6 +17,7 @@ load_dotenv(BASE_DIR / ".env")   # <-- loads .env into os.environ
 # ── Core settings ───────────────────────────────────────────────────────────────
 SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-me")  # use .env
 DEBUG = config("DEBUG", default=False, cast=bool)
+
 STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY")
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET")
@@ -134,11 +135,6 @@ STORAGES = {
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-
-# ── Stripe (from .env) ────────────────────────────────────────────────
-#───────────────────────────────────────────────────────────────────────────
-STRIPE_PUBLIC_KEY = config("STRIPE_PUBLIC_KEY", default="")
-STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
 
 # ── Cloudinary (from .env) ─────────────────────────────────────────────────────
 # If using Cloudinary later, set CLOUDINARY_URL in .env and enable the apps above.
