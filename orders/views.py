@@ -102,8 +102,26 @@ def checkout(request):
             order.shipping = shipping
             order.total = total
             order.save(update_fields=["subtotal", "shipping", "total"])
+         
+            if request.user.is_authenticated:
+                from profiles.models import Profile
+                profile, _ = Profile.objects.get_or_create(user=request.user)
+                initial = {
+                    "full_name": profile.full_name or "",
+                    "email": request.user.email or "",
+                    "phone_number": profile.phone or "",
+                    "street": profile.street or "",
+                    "house_number": profile.house_number or "",
+                    "city": profile.city or "",
+                    "postal_code": profile.postcode or "",
+                    "country": profile.country or "Germany",
+                }
+                form = CheckoutForm(initial=initial)
+            else:
+                form = CheckoutForm()
 
-            # ... inside checkout view, after order & items saved successfully:
+
+            # after order & items saved successfully:
             try:
                 send_order_pending_email(order)
             except Exception as e:
@@ -511,3 +529,19 @@ def fulfillment_recently_fulfilled(request):
               .order_by("-created_at")[:20]      # last 20
               .prefetch_related("items"))
     return render(request, "orders/fulfillment_recent.html", {"orders": orders})
+
+
+@login_required
+def my_orders(request):
+    orders = (Order.objects
+              .filter(user=request.user)
+              .order_by("-created_at")
+              .prefetch_related("items"))
+    return render(request, "orders/my_orders.html", {"orders": orders})
+
+
+@login_required
+def my_order_detail(request, order_id: int):
+    order = get_object_or_404(Order.objects.prefetch_related("items__product"),
+                              id=order_id, user=request.user)
+    return render(request, "orders/my_order_detail.html", {"order": order})

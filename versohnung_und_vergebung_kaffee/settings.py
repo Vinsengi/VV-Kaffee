@@ -1,30 +1,27 @@
-import os
+# versohnung_und_vergebung_kaffee/settings.py
 from pathlib import Path
+import os
 from decouple import config
 from django.urls import reverse_lazy
 from dotenv import load_dotenv
-import dj_database_url
-
-# Optional: only used if you set DATABASE_URL for Postgres
-try:
-    import dj_database_url  # pip install dj-database-url (optional)
-except ImportError:
-    dj_database_url = None
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")   # <-- loads .env into os.environ
+load_dotenv(BASE_DIR / ".env")  # load .env into os.environ
 
-# ── Core settings ───────────────────────────────────────────────────────────────
-SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-me")  # use .env
+# ── Core ───────────────────────────────────────────────────────────────────────
+SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-me")
 DEBUG = config("DEBUG", default=False, cast=bool)
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
-STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY")
-STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY")
-STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET")
+# Stripe (fail fast if missing in real envs)
+STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
+STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+SITE_NAME = "Versöhnung und Vergebung Kaffee"
+SITE_URL = config("SITE_URL", default="http://127.0.0.1:8000")
 
-# ── Installed apps ─────────────────────────────────────────────────────────────
+# ── Apps ──────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -33,28 +30,33 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
-    # Your apps
+    "django.contrib.sites",        # required by allauth
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+
+    # project apps
     "products",
     "orders",
     "reviews",
     "profiles.apps.ProfilesConfig",
     "cart",
-
-    # 3rd party (add when you wire them)
-    # "cloudinary_storage",  # if you use Cloudinary for static/media
-    # "cloudinary",
 ]
 
-# ── Middleware ─────────────────────────────────────────────────────────────────
+SITE_ID = 1
+
+# ── Middleware ────────────────────────────────────────────────────────────────
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    # WhiteNoise (serves static files in production)
     "whitenoise.middleware.WhiteNoiseMiddleware",
 
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",  # keep after Auth
+
+    # optional post-login middleware (only if you actually use it)
     "versohnung_und_vergebung_kaffee.middleware.fulfillment_redirect.FulfillmentPostLoginMiddleware",
 
     "django.contrib.messages.middleware.MessageMiddleware",
@@ -63,21 +65,19 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "versohnung_und_vergebung_kaffee.urls"
 
-# ── Templates ──────────────────────────────────────────────────────────────────
+# ── Templates ─────────────────────────────────────────────────────────────────
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        # Global templates dir (you already created this)
-        "DIRS": [BASE_DIR / "templates"],
-        "APP_DIRS": True,  # auto-detects app templates: <app>/templates/<app>/
+        "DIRS": [BASE_DIR / "templates"],  # global templates dir
+        "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.debug",
-                "django.template.context_processors.request",
+                "django.template.context_processors.request",  # required by allauth
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "cart.context_processors.cart_summary",
-
             ],
         },
     },
@@ -85,19 +85,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "versohnung_und_vergebung_kaffee.wsgi.application"
 
-# ── Database ───────────────────────────────────────────────────────────────────
-# Default: SQLite for local dev
+# ── Database ──────────────────────────────────────────────────────────────────
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
-        "OPTIONS": {
-            "timeout": 20,  # seconds
-        },
+        "OPTIONS": {"timeout": 20},
     }
 }
 
-# If DATABASE_URL exists (Heroku), use it with SSL (required by Heroku Postgres)
 DATABASE_URL = config("DATABASE_URL", default=None)
 if DATABASE_URL:
     import dj_database_url
@@ -107,7 +103,7 @@ if DATABASE_URL:
         ssl_require=True,
     )
 
-# ── Password validation ────────────────────────────────────────────────────────
+# ── Password validation ───────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -115,34 +111,56 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# ── Internationalization ───────────────────────────────────────────────────────
+# ── I18N / TZ ─────────────────────────────────────────────────────────────────
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Europe/Berlin"
 USE_I18N = True
 USE_TZ = True
 
-# ── Static & Media ─────────────────────────────────────────────────────────────
+# ── Static & Media ────────────────────────────────────────────────────────────
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]  # your global static folder
-STATIC_ROOT = BASE_DIR / "staticfiles"    # collected on deploy: python manage.py collectstatic
+STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# WhiteNoise: serve compressed static files in prod
 STORAGES = {
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
-    }
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"}
 }
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# ── Cloudinary (from .env) ─────────────────────────────────────────────────────
-# If using Cloudinary later, set CLOUDINARY_URL in .env and enable the apps above.
-CLOUDINARY_URL = config("CLOUDINARY_URL", default="")
+# ── Email (Gmail SMTP) ────────────────────────────────────────────────────────
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER or "no-reply@example.com")
+EMAIL_TIMEOUT = 20
 
-# ── Default primary key field type ─────────────────────────────────────────────
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+# ── Auth / Allauth ────────────────────────────────────────────────────────────
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
 
+# Use username OR email to log in (new allauth style)
+ACCOUNT_LOGIN_METHODS = {"username", "email"}
+
+# Signup fields (asterisk means required)
+ACCOUNT_SIGNUP_FIELDS = ["username*", "email*", "password1*", "password2*"]
+
+# Email verification flow
+ACCOUNT_EMAIL_VERIFICATION = "optional"  # consider "mandatory" in production
+
+# Redirects
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/post-login/"   # our post-login router view
+ACCOUNT_LOGOUT_ON_GET = True
+LOGOUT_REDIRECT_URL = "/"             # take users to homepage after logout
+
+# ── Logging ───────────────────────────────────────────────────────────────────
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -150,22 +168,8 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": "WARNING"},
 }
 
+# ── Optional Cloudinary (leave empty unless used) ─────────────────────────────
+CLOUDINARY_URL = config("CLOUDINARY_URL", default="")
 
-LOGIN_REDIRECT_URL = "/post-login/"
-LOGIN_URL = "/accounts/login/"
-LOGOUT_REDIRECT_URL = "home"
-
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")
-
-DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
-
-# Optional: timeouts & fail behavior
-EMAIL_TIMEOUT = 20
-
-SITE_NAME = "Versöhnung und Vergebung Kaffee"
-SITE_URL = "http://127.0.0.1:8000"  # change in prod
+# ── Default PK type ───────────────────────────────────────────────────────────
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

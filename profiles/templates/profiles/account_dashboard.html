@@ -1,42 +1,105 @@
 {% extends "base.html" %}
+{% load user_extras %}
 {% block content %}
 <div class="container py-4">
-  <h2 class="mb-3">My Account</h2>
-  <div class="row g-3">
-    <div class="col-md-4">
-      <div class="card">
+
+  <!-- Title + optional Fulfillment shortcut -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">My Account</h2>
+    {% if user|has_group:"Fulfillment Department" %}
+      <a class="btn btn-sm btn-success" href="{% url 'orders:fulfillment_paid_orders' %}">
+        Fulfillment Panel
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="row g-4">
+    <!-- Left column: Profile & Address (+ Fulfillment card for staff) -->
+    <div class="col-lg-4">
+      <div class="card h-100">
         <div class="card-body">
-          <h5>Profile</h5>
-          <p class="mb-2">{{ request.user.profile.full_name|default:request.user.username }}</p>
-          <a class="btn btn-sm btn-outline-primary" href="{% url 'profiles:profile_edit' %}">Edit Profile</a>
+          <h5 class="mb-3">Profile & Address</h5>
+          {% if profile %}
+            <div class="small text-secondary mb-2">
+              <div><strong>Name:</strong> {{ profile.full_name|default:"—" }}</div>
+              <div><strong>Phone:</strong> {{ profile.phone|default:"—" }}</div>
+              <div class="mt-2"><strong>Shipping:</strong><br>
+                {{ profile.street }} {{ profile.house_number }}<br>
+                {{ profile.postcode }} {{ profile.city }}<br>
+                {{ profile.country }}
+              </div>
+            </div>
+          {% else %}
+            <p class="text-secondary">No profile yet.</p>
+          {% endif %}
+          <a class="btn btn-outline-primary btn-sm" href="{% url 'profiles:profile_edit' %}">Edit profile</a>
         </div>
       </div>
+
+      <!-- Fulfillment quick access card (only for staff in Fulfillment Department) -->
+      {% if user|has_group:"Fulfillment Department" %}
+      <div class="card border-success mt-3">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="mb-0">Fulfillment</h5>
+            <span class="badge text-bg-success">Staff</span>
+          </div>
+          <p class="text-secondary small mb-3">
+            Pick &amp; pack paid orders. Mark them <em>Fulfilled</em> once shipped.
+          </p>
+          <div class="d-grid gap-2">
+            <a class="btn btn-success" href="{% url 'orders:fulfillment_paid_orders' %}">
+              Go to Paid Orders
+            </a>
+            <a class="btn btn-outline-success" href="{% url 'orders:fulfillment_recent' %}">
+              Recently Fulfilled
+            </a>
+          </div>
+          <hr class="my-3">
+          <p class="small text-secondary mb-0">
+            Need a picklist PDF? Open an order and use <em>Download PDF</em>.
+          </p>
+        </div>
+      </div>
+      {% endif %}
     </div>
-    <div class="col-md-8">
+
+    <!-- Right column: Orders -->
+    <div class="col-lg-8">
       <div class="card">
         <div class="card-body">
-          <h5>Recent Orders</h5>
-          <div class="table-responsive">
-            <table class="table table-sm">
-              <thead>
-                <tr><th>ID</th><th>Date</th><th>Status</th><th>Total</th><th></th></tr>
-              </thead>
-              <tbody>
-              {% for o in orders %}
-                <tr>
-                  <td>#{{ o.id }}</td>
-                  <td>{{ o.created_at|date:"Y-m-d H:i" }}</td>
-                  <td>{{ o.get_status_display }}</td>
-                  <td>€{{ o.total|floatformat:2 }}</td>
-                  <td><a class="btn btn-sm btn-outline-secondary" href="{% url 'profiles:order_detail' o.id %}">View</a></td>
-                </tr>
-              {% empty %}
-                <tr><td colspan="5" class="text-muted">No orders yet.</td></tr>
-              {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          <a class="btn btn-sm btn-link" href="{% url 'profiles:order_list' %}">View all orders →</a>
+          <h5 class="mb-3">Recent Orders</h5>
+          {% if orders %}
+            <div class="table-responsive">
+              <table class="table align-middle">
+                <thead>
+                  <tr>
+                    <th>ID</th><th>Date</th><th>Status</th><th>Total</th><th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for o in orders %}
+                  <tr>
+                    <td>#{{ o.id }}</td>
+                    <td>{{ o.created_at|date:"Y-m-d H:i" }}</td>
+                    <td>{{ o.get_status_display }}</td>
+                    <td>€{{ o.total|floatformat:2 }}</td>
+                    <td>
+                      <a class="btn btn-sm btn-outline-secondary" href="{% url 'orders:thank_you' o.id %}">View</a>
+                      {% if o.status == "paid" %}
+                        <a class="btn btn-sm btn-outline-primary" href="{% url 'reviews:order_review' o.id %}">
+                          Review
+                        </a>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-secondary mb-0">No orders yet.</p>
+          {% endif %}
         </div>
       </div>
     </div>

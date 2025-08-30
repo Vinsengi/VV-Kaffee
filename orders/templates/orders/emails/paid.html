@@ -2,4 +2,7 @@
 <p>Your payment for order <strong>#{{ order.reference }}</strong> is confirmed. We will ship to the address provided.</p>
 <p>Your paid order summary is attached as a PDF.</p>
 <p><a href="{{ site_url }}/account/orders/">View your orders</a></p>
+<p>We would love to hear your feedback on your buying experience and the products you purchased.</p>
+<p><a href="{{ site_url }}{% url 'reviews:experience_review' order.id %}">Rate your buying experience</a></p>
+<p><a href="{% url 'reviews:order_review' order.id %}">Leave reviews for your products</a></p>
 <p>— {{ site_name }}</p>

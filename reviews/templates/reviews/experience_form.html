@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4" style="max-width: 720px;">
+  <h3 class="mb-3">Rate your buying experience</h3>
+  <p class="text-secondary">Order #{{ order.id }}</p>
+  <form method="post" class="row g-3">
+    {% csrf_token %}
+    <div class="col-12">
+      <label class="form-label">Rating</label>
+      {{ form.rating }}
+    </div>
+    <div class="col-12">
+      <label class="form-label">Comment</label>
+      {{ form.comment }}
+    </div>
+    <div class="col-12">
+      <button class="btn btn-primary">Submit</button>
+      <a class="btn btn-link" href="{% url 'orders:thank_you' order.id %}">Skip</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

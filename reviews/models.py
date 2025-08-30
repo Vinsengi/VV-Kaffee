@@ -1,21 +1,32 @@
+from django.conf import settings
 from django.db import models
-from django.contrib.auth.models import User
-from django.core.validators import MinValueValidator, MaxValueValidator
 from products.models import Product
 
-class Review(models.Model):
+
+class ProductReview(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
-    rating = models.PositiveSmallIntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="product_reviews")
+    rating = models.PositiveSmallIntegerField(choices=[(i, str(i)) for i in range(1,6)])
     title = models.CharField(max_length=120, blank=True)
     comment = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_public = models.BooleanField(default=True)
 
     class Meta:
+        unique_together = ("product", "user")  # one review per product per user
         ordering = ["-created_at"]
-        unique_together = ("product", "user")  # one review per user per product
 
     def __str__(self):
-        return f"Review {self.rating}/5 by {self.user.username} on {self.product.name}"
+        return f"{self.product} · {self.user} · {self.rating}★"
+
+
+class ExperienceFeedback(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    order = models.OneToOneField("orders.Order", on_delete=models.SET_NULL, null=True, blank=True)
+    rating = models.PositiveSmallIntegerField(choices=[(i, str(i)) for i in range(1,6)])
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        who = self.user or "Anonymous"
+        oid = self.order_id or "—"
+        return f"Experience {self.rating}★ by {who} (order #{oid})"
