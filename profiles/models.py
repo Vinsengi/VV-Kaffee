@@ -9,8 +9,8 @@ class Profile(models.Model):
     phone = models.CharField(max_length=30, blank=True)
 
     # Default shipping address
-    street = models.CharField("Street", max_length=120)
-    house_number = models.PositiveIntegerField(verbose_name="House number")
+    street = models.CharField("Street", max_length=120, blank=True)
+    house_number = models.CharField("House number", max_length=20, blank=True)
     postcode = models.CharField("Postcode/PLZ", max_length=20, blank=True)
     city = models.CharField(max_length=80, blank=True)
     country = models.CharField(max_length=60, blank=True, default="Germany")

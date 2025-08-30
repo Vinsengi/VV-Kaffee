@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>My Orders</h1>
+{% if request.session.cart and request.session.cart|length > 0 %}
+<div class="alert alert-info d-flex justify-content-between align-items-center">
+  <div>Items waiting in your cart.</div>
+  <a class="btn btn-sm btn-outline-dark" href="{% url 'cart:detail' %}">Review cart</a>
+</div>
+{% endif %}
+
+<table class="table">
+  <thead><tr><th>#</th><th>Date</th><th>Status</th><th>Total</th><th></th></tr></thead>
+  <tbody>
+    {% for o in orders %}
+      <tr>
+        <td>{{ o.id }}</td>
+        <td>{{ o.created_at|date:"Y-m-d H:i" }}</td>
+        <td>{{ o.get_status_display }}</td>
+        <td>€{{ o.total }}</td>
+        <td>
+          <a class="btn btn-sm btn-outline-primary" href="{% url 'orders:my_order_detail' o.id %}">View</a>
+          {% if o.status == "new" %}
+            <a class="btn btn-sm btn-primary" href="{% url 'orders:pay' o.id %}">Pay now</a>
+          {% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">No orders yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

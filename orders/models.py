@@ -25,8 +25,8 @@ class Order(models.Model):
     email = models.EmailField()
     phone_number = models.CharField(max_length=20, blank=True)
 
-    address_line1 = models.CharField(max_length=120)
-    address_line2 = models.CharField(max_length=120, blank=True)
+    street = models.CharField(max_length=120)
+    house_number = models.CharField(max_length=10, blank=True)
     city = models.CharField(max_length=80)
     postal_code = models.CharField(max_length=20)
     country = models.CharField(max_length=60, default="Germany")

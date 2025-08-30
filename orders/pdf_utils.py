@@ -31,7 +31,7 @@ def build_order_pdf(order, *, title="Order Summary", include_address=True, show_
     info_style = styles["Normal"]
 
     # Title
-    elements.append(Paragraph(f"{title} — #{order.id}", title_style))
+    elements.append(Paragraph(f"{title} — #{order.reference}", title_style))
     elements.append(Spacer(1, 10))
 
     # Basic info
@@ -46,8 +46,8 @@ def build_order_pdf(order, *, title="Order Summary", include_address=True, show_
     # Address block
     if include_address:
         addr_lines = [
-            order.address_line1 or "",
-            order.address_line2 or "",
+            order.street or "",
+            order.house_number or "",
             f"{order.postcode or ''} {order.city or ''}".strip(),
             order.country or "",
         ]

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4" style="max-width: 720px;">
+  <h3 class="mb-3">Review: {{ product.name }}</h3>
+  <form method="post" class="row g-3">
+    {% csrf_token %}
+    <div class="col-12">
+      <label class="form-label">Rating</label>
+      {{ form.rating }}
+      {% if form.rating.errors %}<div class="text-danger small">{{ form.rating.errors }}</div>{% endif %}
+    </div>
+    <div class="col-12">
+      <label class="form-label">Title</label>
+      {{ form.title }}
+      {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors }}</div>{% endif %}
+    </div>
+    <div class="col-12">
+      <label class="form-label">Comment</label>
+      {{ form.comment }}
+      {% if form.comment.errors %}<div class="text-danger small">{{ form.comment.errors }}</div>{% endif %}
+    </div>
+    <div class="col-12">
+      <button class="btn btn-primary">Save review</button>
+      <a class="btn btn-link" href="{% url 'profiles:account_dashboard' %}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

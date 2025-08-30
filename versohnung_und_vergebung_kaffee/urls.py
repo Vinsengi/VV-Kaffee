@@ -26,7 +26,9 @@ urlpatterns = [
     path("cart/", include("cart.urls", namespace="cart")),
     path("", include(("orders.urls", "orders"), namespace="orders")),
     path("accounts/", include("django.contrib.auth.urls")),
+    path("accounts/", include("allauth.urls")),
     path("", include("profiles.urls", namespace="profiles")),
     path("post-login/", post_login_redirect, name="post_login_redirect"),
+    path("reviews/", include(("reviews.urls", "reviews"), namespace="reviews")),
     
 ]

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4" style="max-width: 480px;">
+  <h2 class="mb-3">Login</h2>
+  <form method="post" action="{% url 'account_login' %}">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    
+    <div class="mb-3">
+      <label for="id_login" class="form-label">Username or Email</label>
+      {{ form.login }}
+      {% if form.login.errors %}
+        <div class="text-danger small">{{ form.login.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="mb-3">
+      <label for="id_password" class="form-label">Password</label>
+      {{ form.password }}
+      {% if form.password.errors %}
+        <div class="text-danger small">{{ form.password.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center">
+      <button type="submit" class="btn btn-primary">Sign in</button>
+      <a href="{% url 'account_reset_password' %}">Forgot password?</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

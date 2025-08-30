@@ -48,7 +48,7 @@ def send_order_paid_email(order):
     if not to_email:
         return
 
-    subject = f"[{settings.SITE_NAME}] Payment confirmed for Order #{order.id}"
+    subject = f"[{settings.SITE_NAME}] Payment confirmed for Order #{order.reference}"
     context = {
         "order": order,
         "site_name": settings.SITE_NAME,
@@ -62,7 +62,7 @@ def send_order_paid_email(order):
     msg.attach_alternative(html_body, "text/html")
 
     pdf = build_order_pdf(order, title="Paid Order Summary", include_address=True, show_status=True)
-    filename = f"order_{order.id}_paid.pdf"
+    filename = f"order_{order.reference}_paid.pdf"
     msg.attach(filename, pdf.read(), "application/pdf")
 
     msg.send(fail_silently=False)
