@@ -93,7 +93,7 @@ class Product(models.Model):
         super().save(*args, **kwargs)
 
     def get_absolute_url(self):
-        return reverse("products:detail", kwargs={"slug": self.slug})
+        return reverse("products:product_detail", kwargs={"slug": self.slug})
 
     @property
     def weight_kg(self) -> Decimal:
