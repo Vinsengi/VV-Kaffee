@@ -1,8 +1,6 @@
 # versohnung_und_vergebung_kaffee/settings.py
 from pathlib import Path
-import os
 from decouple import config
-from django.urls import reverse_lazy
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,6 +27,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
 
     "django.contrib.sites",        # required by allauth
     "allauth",
@@ -129,6 +128,19 @@ STORAGES = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# ── Optional Cloudinary (leave empty unless used) ─────────────────────────────
+CLOUDINARY_URL = config("CLOUDINARY_URL", default="")
+
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+
 # ── Email (Gmail SMTP) ────────────────────────────────────────────────────────
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
@@ -168,8 +180,7 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": "WARNING"},
 }
 
-# ── Optional Cloudinary (leave empty unless used) ─────────────────────────────
-CLOUDINARY_URL = config("CLOUDINARY_URL", default="")
+
 
 # ── Default PK type ───────────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

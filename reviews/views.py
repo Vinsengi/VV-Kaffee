@@ -38,7 +38,7 @@ def create_or_update_review(request, product_id):
             review.user = request.user
             review.product = product
             review.save()
-            return redirect("products:detail", slug=product.slug)
+            return redirect("products:product_detail", slug=product.slug)
     else:
         form = ProductReviewForm(instance=instance)
 
