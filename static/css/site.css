@@ -1,0 +1,53 @@
+/* site.css */
+
+/* Navbar tweaks */
+.navbar-brand span {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.navbar-dark .nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  transition: color 0.2s ease;
+}
+.navbar-dark .nav-link:hover,
+.navbar-dark .nav-link:focus {
+  color: #fff;
+}
+
+/* Buttons */
+.btn-outline-light:hover {
+  color: #212529;
+  background-color: #f8f9fa;
+  border-color: #f8f9fa;
+}
+
+.btn-link {
+  text-decoration: none;
+}
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+/* Messages */
+.alert {
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+}
+
+/* Tables */
+.table th {
+  font-weight: 600;
+  color: #444;
+}
+.table td {
+  vertical-align: middle;
+}
+
+/* Footer */
+footer {
+  font-size: 0.9rem;
+}
+footer div:first-child {
+  font-weight: 500;
+}

@@ -22,7 +22,9 @@ class ProductDetailView(DetailView):
         ctx = super().get_context_data(**kwargs)
         product = self.object
         # Use product.available_grinds if set, else sensible default
-        raw = (product.available_grinds or "whole,espresso,filter,french_press")
+        raw = product.available_grinds or (
+            "whole,espresso,filter,french_press"
+        )
         values = [g.strip() for g in raw.split(",") if g.strip()]
         choices = [(g, g.replace("_", " ").title()) for g in values]
         ctx["grind_choices"] = choices

@@ -1,8 +1,6 @@
 # versohnung_und_vergebung_kaffee/settings.py
 from pathlib import Path
-import os
 from decouple import config
-from django.urls import reverse_lazy
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent

@@ -1,25 +1,35 @@
 {% extends "base.html" %}
+{% load humanize %}
 {% block content %}
+  <nav class="mb-3">
+    <a class="text-decoration-none" href="{% url 'products:list' %}">← Back to shop</a>
+  </nav>
+
   <div class="row g-4">
     <div class="col-md-6">
       {% if product.image %}
         <img src="{{ product.image.url }}" class="img-fluid rounded shadow-sm" alt="{{ product.name }}">
+      {% else %}
+        <div class="border rounded bg-light d-flex align-items-center justify-content-center" style="height: 360px;">
+          <span class="text-secondary">No image</span>
+        </div>
       {% endif %}
     </div>
+
     <div class="col-md-6">
-      <h1>{{ product.name }}</h1>
+      <h1 class="h3">{{ product.name }}</h1>
       <p class="text-muted mb-1">
         {{ product.roast_type|title }} • {{ product.weight_grams }}g
       </p>
-      <p class="h4">€{{ product.price }}</p>
+      <p class="h4 mb-3">€{{ product.price|floatformat:2|intcomma }}</p>
 
       {% if product.tasting_notes %}
-        <p class="mt-3"><strong>Tasting notes:</strong> {{ product.tasting_notes }}</p>
+        <p class="mt-2"><strong>Tasting notes:</strong> {{ product.tasting_notes }}</p>
       {% endif %}
 
       <div class="mt-3">
         {% if product.description %}<p>{{ product.description }}</p>{% endif %}
-        <ul class="small text-secondary">
+        <ul class="small text-secondary mb-0">
           {% if product.origin %}<li><strong>Origin:</strong> {{ product.origin }}</li>{% endif %}
           {% if product.farm %}<li><strong>Farm:</strong> {{ product.farm }}</li>{% endif %}
           {% if product.variety %}<li><strong>Variety:</strong> {{ product.variety }}</li>{% endif %}
@@ -28,37 +38,60 @@
         </ul>
       </div>
 
-      <!-- 🔽 Replaced "Add to Cart" button with real form -->
       <div class="mt-4">
         <form action="{% url 'cart:add' slug=product.slug %}" method="post" class="row g-2 align-items-end">
           {% csrf_token %}
+
           <div class="col-auto">
-            <label class="form-label mb-1">Grind</label>
-            <select name="grind" class="form-select">
-              {% for value, label in grind_choices %}
-                <option value="{{ value }}">{{ label }}</option>
-              {% endfor %}
-            </select>
+            <label class="form-label mb-1" for="id_grind">Grind</label>
+            {% if grind_choices %}
+              <select name="grind" id="id_grind" class="form-select">
+                {% for value, label in grind_choices %}
+                  <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+              </select>
+            {% else %}
+              <input type="hidden" name="grind" value="whole">
+              <div class="form-control-plaintext text-secondary">Whole bean</div>
+            {% endif %}
           </div>
+
           <div class="col-auto">
-            <label class="form-label mb-1">Qty</label>
-            <input type="number" name="quantity" min="1" value="1" class="form-control" style="max-width:90px;">
+            <label class="form-label mb-1" for="id_quantity">Qty</label>
+            {% with max_qty=product.stock|default_if_none:99 %}
+              <input
+                type="number"
+                id="id_quantity"
+                name="quantity"
+                min="1"
+                max="{{ max_qty }}"
+                value="1"
+                class="form-control"
+                style="max-width:90px;"
+              >
+            {% endwith %}
           </div>
+
           <div class="col-auto">
-            <button class="btn btn-primary btn-lg" {% if product.stock == 0 %}disabled{% endif %}>
-              Add to Cart
-            </button>
+            {% with s=product.stock|default:0 %}
+              <button
+                class="btn btn-primary btn-lg"
+                {% if s|add:0 <= 0 %}disabled title="This item is currently out of stock"{% endif %}
+              >
+                Add to Cart
+              </button>
+            {% endwith %}
           </div>
         </form>
+
         <small class="text-secondary d-block mt-2">
-          {% if product.stock > 0 %}
+          {% if product.stock|default:0 > 0 %}
             In stock: {{ product.stock }}
           {% else %}
             Out of stock
           {% endif %}
         </small>
       </div>
-      <!-- 🔼 End of form -->
     </div>
   </div>
 {% endblock %}

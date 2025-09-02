@@ -18,7 +18,9 @@
               {% if p.tasting_notes %}
                 <p class="small text-secondary mb-2">{{ p.tasting_notes }}</p>
               {% endif %}
-              <a href="{{ p.get_absolute_url }}" class="mt-auto btn btn-primary">View</a>
+              <a href="{{ product.get_absolute_url }}" class="mt-auto btn btn-primary">
+                View {{ p.name }}
+              </a>
             </div>
           </div>
         </div>

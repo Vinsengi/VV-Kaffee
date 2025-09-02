@@ -37,21 +37,36 @@ class Product(models.Model):
     name = models.CharField(max_length=120)
     slug = models.SlugField(max_length=140, unique=True, blank=True)
     sku = models.CharField(max_length=30, unique=True)
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="products")
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="products",
+    )
 
     # Coffee specifics
     origin = models.CharField(max_length=120, default="Rwanda")
     farm = models.CharField(max_length=120, blank=True)
-    variety = models.CharField(max_length=120, blank=True)     # e.g., Bourbon, Jackson
-    altitude_masl = models.PositiveIntegerField(null=True, blank=True)  # meters above sea level
-    process = models.CharField(max_length=120, blank=True)      # e.g., Washed, Natural, Honey
-    roast_type = models.CharField(max_length=20, choices=ROAST_CHOICES, default="medium")
+    # e.g., Bourbon, Jackson
+    variety = models.CharField(max_length=120, blank=True)
+    # meters above sea level
+    altitude_masl = models.PositiveIntegerField(null=True, blank=True)
+    # e.g., Washed, Natural, Honey
+    process = models.CharField(max_length=120, blank=True)
+    roast_type = models.CharField(
+        max_length=20,
+        choices=ROAST_CHOICES,
+        default="medium",
+    )
     tasting_notes = models.CharField(max_length=200, blank=True)
 
     # Commercial
     price = models.DecimalField(max_digits=8, decimal_places=2)  # EUR
-    weight_grams = models.PositiveIntegerField(default=250)      # 250g, 500g, 1000g, etc.
-    available_grinds = models.CharField(max_length=120, default="whole")  # comma list of GRIND_CHOICES keys
+    # 250g, 500g, 1000g, etc.
+    weight_grams = models.PositiveIntegerField(default=250)
+    # comma list of GRIND_CHOICES keys
+    available_grinds = models.CharField(max_length=120, default="whole")
 
     # Inventory & media
     stock = models.PositiveIntegerField(default=0)
@@ -83,4 +98,3 @@ class Product(models.Model):
     @property
     def weight_kg(self) -> Decimal:
         return Decimal(self.weight_grams) / Decimal(1000)
-
