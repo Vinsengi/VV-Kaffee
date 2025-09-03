@@ -71,7 +71,7 @@ def checkout(request):
                 full_name=form.cleaned_data["full_name"],
                 email=form.cleaned_data["email"],
                 phone_number=form.cleaned_data.get("phone_number", ""),
-                street=form.cleaned_data["street"], 
+                street=form.cleaned_data["street"],
                 house_number=form.cleaned_data.get("house_number", ""),
                 city=form.cleaned_data["city"],
                 postal_code=form.cleaned_data["postal_code"],
@@ -85,7 +85,10 @@ def checkout(request):
                 try:
                     product = Product.objects.get(slug=item["slug"], is_active=True)
                 except Product.DoesNotExist:
-                    messages.warning(request, f"Item '{item['name']}' is no longer available and was skipped.")
+                    messages.warning(
+                        request,
+                        f"Item '{item['name']}' is no longer available and was skipped."
+                    )
                     continue
 
                 OrderItem.objects.create(
@@ -102,67 +105,63 @@ def checkout(request):
             order.shipping = shipping
             order.total = total
             order.save(update_fields=["subtotal", "shipping", "total"])
-         
-            if request.user.is_authenticated:
-                from profiles.models import Profile
-                profile, _ = Profile.objects.get_or_create(user=request.user)
-                initial = {
-                    "full_name": profile.full_name or "",
-                    "email": request.user.email or "",
-                    "phone_number": profile.phone or "",
-                    "street": profile.street or "",
-                    "house_number": profile.house_number or "",
-                    "city": profile.city or "",
-                    "postal_code": profile.postcode or "",
-                    "country": profile.country or "Germany",
-                }
-                form = CheckoutForm(initial=initial)
-            else:
-                form = CheckoutForm()
 
-
-            # after order & items saved successfully:
+            # 3) Send "pending" email (non-blocking)
             try:
                 send_order_pending_email(order)
-            except Exception as e:
-                # log it, but don't block checkout
-                print("Pending email failed:", e)
+            except Exception:
+                logger.exception("Pending email failed for order %s", order.id)
 
-
-            # 3) Create PaymentIntent
-
+            # 4) Create PaymentIntent
             first_name = items[0]["name"] if items else "order"
             extra = f" +{len(items) - 1} more" if len(items) > 1 else ""
-            pi_description = f"VV Kaffee -  {first_name}{extra}"
-             
+            pi_description = f"VV Kaffee - {first_name}{extra}"
+
             intent = stripe.PaymentIntent.create(
                 amount=_to_cents(order.total),
                 currency="eur",
-                metadata={
-                    "order_id": str(order.id),
-                    "email": order.email,
-                },
+                metadata={"order_id": str(order.id), "email": order.email},
                 receipt_email=order.email,
                 description=pi_description,
-                # automatic_payment_methods is easiest for test
                 automatic_payment_methods={"enabled": True},
             )
             order.payment_intent_id = intent.id
             order.save(update_fields=["payment_intent_id"])
 
-            # 4) Clear session cart now (or keep until paid; choose your preference)
+            # 5) Clear session cart
             request.session["cart"] = {}
             request.session.modified = True
 
-            # 5) Go to pay page to render Payment Element
+            # 6) Go to pay page to render Payment Element
             return redirect("orders:pay", order_id=order.id)
-    else:
-        form = CheckoutForm()
+        # If form invalid, fall through to render with errors
 
+    else:
+        # GET: prefill from profile if logged in
+        if request.user.is_authenticated:
+            from profiles.models import Profile
+            profile, _ = Profile.objects.get_or_create(user=request.user)
+            initial = {
+                "full_name": profile.full_name or "",
+                "email": request.user.email or "",
+                "phone_number": profile.phone or "",
+                "street": profile.street or "",
+                "house_number": profile.house_number or "",
+                "city": profile.city or "",
+                "postal_code": profile.postcode or "",
+                "country": profile.country or "Germany",
+            }
+            form = CheckoutForm(initial=initial)
+        else:
+            form = CheckoutForm()
+
+    # Render checkout with summary
     items, subtotal, shipping, total = compute_summary(cart)
-    return render(request, "orders/checkout.html", {
-        "form": form, "items": items, "subtotal": subtotal, "shipping": shipping, "total": total,
-    })
+    return render(
+        request,
+        "orders/checkout.html",
+        {"form": form, "items": items, "subtotal": subtotal, "shipping": shipping, "total": total},
+    )
 
 
 def pay(request, order_id: int):
@@ -204,7 +203,6 @@ def pay(request, order_id: int):
 def thank_you(request, order_id: int):
     order = get_object_or_404(Order.objects.prefetch_related("items__product"), pk=order_id)
 
-    # Fallback: if not paid, verify PI directly
     if order.status != "paid":
         pi_id = request.GET.get("payment_intent") or order.payment_intent_id
         if pi_id:
@@ -221,10 +219,17 @@ def thank_you(request, order_id: int):
                     order.status = "paid"
                     order.save(update_fields=["status"])
                     logger.warning("Order %s reconciled to PAID on thank_you", order.id)
-            except Exception as e:
-                logger.exception("Thank_you reconcile error: %s", e)
+
+                    # ✅ send paid email here too
+                    try:
+                        send_order_paid_email(order)
+                    except Exception:
+                        logger.exception("Paid email (thank_you reconcile) failed for order %s", order.id)
+            except Exception:
+                logger.exception("Thank_you reconcile error for order %s", order.id)
 
     return render(request, "orders/thank_you.html", {"order": order})
+
 
 
 
@@ -278,8 +283,8 @@ def stripe_webhook(request):
             
             try:
                 send_order_paid_email(order)
-            except Exception as e:
-                print("Paid email failed:", e)
+            except Exception:
+                logger.exception("Paid email failed for order %s", order.id)
 
         return HttpResponse(status=200)
 
@@ -360,7 +365,9 @@ def order_picklist_pdf(request, order_id):
     _ensure_paid_or_superuser(order, request.user)
 
     response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = f'inline; filename="picklist_order_{order.reference}.pdf"'
+    response["Content-Disposition"] = (
+        f'inline; filename="picklist_order_{order.id}.pdf"'
+    )
 
     doc = SimpleDocTemplate(
         response,
@@ -382,7 +389,7 @@ def order_picklist_pdf(request, order_id):
     title_style = styles["Heading1"]
     normal = styles["Normal"]
 
-    elements.append(Paragraph(f"Picklist for Order #{order.reference}", title_style))
+    elements.append(Paragraph(f"Picklist for Order #{order.id}", title_style))
     elements.append(Spacer(1, 6))
 
     full_name = getattr(order, "full_name", None) or (order.user.username if getattr(order, "user", None) else "Guest")
@@ -485,9 +492,6 @@ def _ensure_paid_or_superuser(order, user):
         return
     # Hide details if not paid
     raise Http404("Order not available")
-
-
-
 
 
 PACKABLE_STATUSES = ["paid"]

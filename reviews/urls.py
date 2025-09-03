@@ -5,5 +5,9 @@ app_name = "reviews"
 urlpatterns = [
     path("order/<int:order_id>/review/", order_review, name="order_review"),
     path("product/<int:product_id>/review/", create_or_update_review, name="product_review"),
-    path("experience/<int:order_id>/", experience_review, name="experience_review"),
+    path(
+        "experience/<int:order_id>/",
+        experience_review,
+        name="experience_review"
+    ),
 ]

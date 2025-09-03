@@ -1,0 +1,11 @@
+<p>Hi {{ order.full_name|default:"there" }},</p>
+<p>Thanks! Your payment for order <strong>#{{ order.reference }}</strong> is confirmed. We will ship to the address provided as below:<br>
+{{ order.street }} {{ order.house_number }} <br>
+{{ order.postcode }} {{ order.city }} <br>
+{{ order.country }}</p>
+<p>Your paid order summary is attached as a PDF.</p>
+<p><a href="{{ site_url }}/account/orders/" style="display:inline-block;padding:10px 20px;background:#6F4E37;color:#fff;text-decoration:none;border-radius:4px;font-weight:bold;">View your orders</a></p>
+<p>We would love to hear your feedback on your buying experience and the products you purchased.</p>
+<p><a href="{{ site_url }}{% url 'reviews:experience_review' order.id %}" style="display:inline-block;padding:10px 20px;background:#6F4E37;color:#fff;text-decoration:none;border-radius:4px;font-weight:bold;">Rate your buying experience</a></p>
+<p><a href="{% url 'reviews:order_review' order.id%}" style="display:inline-block;padding:10px 20px;background:#6F4E37;color:#fff;text-decoration:none;border-radius:4px;font-weight:bold;">Leave reviews for your products</a></p>
+<p>— {{ site_name }}</p>
