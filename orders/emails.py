@@ -116,8 +116,16 @@ def _send_mail_with_optional_pdf(subject, template, context, to_email, pdf_filen
 
 def send_order_pending_email(order):
     subject = f"Order #{order.id} received – Pending payment"
-    ctx = {"order": order, "site_name": getattr(settings, "SITE_NAME", "VV Kaffee")}
-    # No PDF for pending by default, but you can add if you want
+    if order.user:
+        account_url = f"{getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')}/account/account"
+    else:
+        account_url = f"{getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')}/accounts/signup/"
+    ctx = {
+        "order": order,
+        "site_name": getattr(settings, "SITE_NAME", "VV Kaffee"),
+        "site_url": getattr(settings, "SITE_URL", "http://127.0.0.1:8000"),
+        "account_url": account_url,
+    }
     return _send_mail_with_optional_pdf(
         subject=subject,
         template="emails/order_pending",
@@ -128,7 +136,16 @@ def send_order_pending_email(order):
 
 def send_order_paid_email(order):
     subject = f"Payment confirmed – Order #{order.id}"
-    ctx = {"order": order, "site_name": getattr(settings, "SITE_NAME", "VV Kaffee")}
+    if order.user:
+        account_url = f"{getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')}/account/"
+    else:
+        account_url = f"{getattr(settings, 'SITE_URL', 'http://127.0.0.1:8000')}/accounts/signup/"
+    ctx = {
+        "order": order,
+        "site_name": getattr(settings, "SITE_NAME", "VV Kaffee"),
+        "site_url": getattr(settings, "SITE_URL", "http://127.0.0.1:8000"),
+        "account_url": account_url,
+    }
     pdf = _build_pdf_bytes(order, f"Order #{order.id} – Paid")
     return _send_mail_with_optional_pdf(
         subject=subject,

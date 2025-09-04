@@ -16,8 +16,8 @@ STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
 STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
 
-SITE_NAME = "Versöhnung und Vergebung Kaffee"
 SITE_URL = config("SITE_URL", default="http://127.0.0.1:8000")
+SITE_NAME = config("SITE_NAME", default="Versöhnung und Vergebung Kaffee")
 
 # ── Apps ──────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [

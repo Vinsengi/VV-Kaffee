@@ -3,6 +3,6 @@ Hi {{ order.full_name|default:"there" }},
 Your payment for order #{{ order.reference }} is confirmed. We will ship to the address provided.
 You’ll find your paid order summary attached as a PDF.
 
-Track your orders: {{ site_url }}/account/orders/
+Track your orders: {{ account_url }}/account/orders/
 
 — {{ site_name }}
