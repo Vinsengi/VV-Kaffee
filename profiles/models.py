@@ -7,6 +7,7 @@ class Profile(models.Model):
     # Basic contact
     full_name = models.CharField(max_length=140, blank=True)
     phone = models.CharField(max_length=30, blank=True)
+    email = models.EmailField("Email address", max_length=254, blank=True)  # added email field
 
     # Default shipping address
     street = models.CharField("Street", max_length=120, blank=True)
@@ -15,7 +16,7 @@ class Profile(models.Model):
     city = models.CharField(max_length=80, blank=True)
     country = models.CharField(max_length=60, blank=True, default="Germany")
 
-    updated_at = models.DateTimeField(auto_now=True)
+    # Profile image
+    image = models.ImageField(upload_to="profile_images/", blank=True, null=True)  # added image field
 
-    def __str__(self):
-        return f"Profile({self.user.username})"
+    updated_at = models.DateTimeField(auto_now=True)
