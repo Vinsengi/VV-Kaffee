@@ -1,6 +1,7 @@
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib import messages
 from products.models import Product
+from orders.models import Order
 from .utils import cart_from_session, compute_summary, CART_SESSION_KEY, grind_label
 
 
@@ -27,6 +28,7 @@ def cart_add(request, slug):
     key = product.slug
     if key not in cart:
         cart[key] = {
+            "slug": product.slug,
             "name": product.name,
             "price": str(product.price),  # keep JSON-serializable
             "quantity": 0,
@@ -68,4 +70,32 @@ def cart_clear(request):
     request.session[CART_SESSION_KEY] = {}
     request.session.modified = True
     messages.info(request, "Cart cleared.")
+    return redirect("cart:detail")
+
+
+def buy_again(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    cart = cart_from_session(request.session)
+
+    for item in order.items.all():
+        product = item.product
+        key = product.slug
+        if key not in cart:
+            cart[key] = {
+                "slug": product.slug,
+                "name": product.name,
+                "price": str(product.price),
+                "quantity": 0,
+                "grind": getattr(item, "grind", "whole"),
+                "weight_grams": product.weight_grams,
+                "sku": product.sku,
+                "image_url": product.image.url if product.image else "",
+            }
+        cart[key]["quantity"] += item.quantity
+        # Optionally update grind if your order item has it
+        if hasattr(item, "grind"):
+            cart[key]["grind"] = item.grind
+
+    request.session.modified = True
+    messages.success(request, "Order items added to cart.")
     return redirect("cart:detail")

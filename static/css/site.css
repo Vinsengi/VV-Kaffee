@@ -51,3 +51,14 @@ footer {
 footer div:first-child {
   font-weight: 500;
 }
+/* edit profile */
+.text-coffee { color: #6F4E37; }
+.border-coffee { border-color: #6F4E37 !important; }
+.btn-coffee { background: #6F4E37; color: #fff; border: none; }
+.btn-coffee:hover, .btn-coffee:focus { background: #5a3c24; color: #fff; }
+.btn-outline-coffee { border: 2px solid #6F4E37; color: #6F4E37; background: #fff; }
+.btn-outline-coffee:hover, .btn-outline-coffee:focus { background: #6F4E37; color: #fff; }
+
+html, body { height: 100%; }
+body { display: flex; flex-direction: column; }
+main { flex: 1; }

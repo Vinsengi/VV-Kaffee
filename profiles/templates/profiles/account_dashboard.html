@@ -23,6 +23,8 @@
             <div class="small text-secondary mb-2">
               <div><strong>Name:</strong> {{ profile.full_name|default:"—" }}</div>
               <div><strong>Phone:</strong> {{ profile.phone|default:"—" }}</div>
+              <div><strong>Email:</strong> {{ profile.email|default:"—" }}</div>
+      
               <div class="mt-2"><strong>Shipping:</strong><br>
                 {{ profile.street }} {{ profile.house_number }}<br>
                 {{ profile.postcode }} {{ profile.city }}<br>
@@ -65,7 +67,7 @@
     </div>
 
     <!-- Right column: Orders -->
-    <div class="col-lg-8">
+    {% comment %} <div class="col-lg-8">
       <div class="card">
         <div class="card-body">
           <h5 class="mb-3">Recent Orders</h5>
@@ -102,7 +104,150 @@
           {% endif %}
         </div>
       </div>
+    </div> {% endcomment %}
+
+    <!-- Recent Orders Section -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-body p-4">
+        <h5 class="fw-semibold mb-3">Recent Orders</h5>
+        {% if orders %}
+          <table class="table table-hover align-middle">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Items</th>
+                <th>Reference</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Review</th>
+                <th>Buy again</th>
+                
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for order in orders %}
+                <tr>
+                  <td>
+                    <a href="{% url 'profiles:order_detail' order.id %}">{{ order.id }}</a>
+                  </td>
+                  <td>
+                    {% if order.items.all %}
+                      {% for item in order.items.all %}
+                        {% if item.product.image %}
+                          <a href="#"
+                            class="order-product-trigger"
+                            data-bs-toggle="modal"
+                            data-bs-target="#orderProductModal"
+                            data-name="{{ item.product.name }}"
+                            data-image="{{ item.product.image.url }}"
+                            data-sku="{{ item.product.sku|default:'' }}"
+                            data-description="{{ item.product.description|default:'' }}"
+                            {% if item.product.slug %}data-url="{% url 'products:product_detail' item.product.slug %}"{% else %}data-url=""{% endif %}>
+                            <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}"
+                                class="rounded shadow-sm me-1"
+                                style="width:40px;height:40px;object-fit:cover;cursor:zoom-in;">
+                          </a>
+                        {% endif %}
+                      {% endfor %}
+                    {% endif %}
+                  </td>
+                  {% comment %} <td>
+                    {% if order.items.all %}
+                      {% for item in order.items.all %}
+                        {% if item.product.image %}
+                          <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" class="rounded shadow-sm me-1" style="width:40px;height:40px;object-fit:cover;">
+                        {% endif %}
+                      {% endfor %}
+                    {% endif %}
+                  </td> {% endcomment %}
+                  <td>{{ order.reference }}</td>
+                  <td>{{ order.created_at|date:"d.m.Y" }}</td>
+                  <td>{{ order.status }}</td>
+                  <td>{{ order.total|floatformat:2 }} €</td>
+                  <td>
+                  {% if order.items.count > 0 and order.status != "paid" and order.status != "fulfilled" %}
+                    <a class="btn btn-sm btn-warning" href="{% url 'orders:continue_payment' order.id %}">
+                      Continue payment
+                    </a>
+                  {% endif %}
+                    {% comment %} <a class="btn btn-sm btn-outline-secondary" href="{% url 'orders:thank_you' o.id %}">View</a> {% endcomment %}
+                    {% if order.status == "paid" %}
+                      <a class="btn btn-sm btn-outline-primary" href="{% url 'reviews:order_review' order.id %}">
+                        Review
+                      </a>
+                    {% endif %}
+                  </td>
+                  
+                  <td>
+                    <a href="{% url 'cart:buy_again' order.id %}" class="btn btn-sm btn-outline-primary">Buy Again</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="text-secondary">You have no recent orders.</div>
+        {% endif %}
+      </div>
     </div>
+
   </div>
 </div>
 {% endblock %}
+
+<div class="modal fade" id="orderProductModal" tabindex="-1" aria-labelledby="orderProductModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content overflow-hidden">
+      <div class="modal-body p-0">
+        <div class="row g-0">
+          <div class="col-md-6">
+            <img id="opmImage" src="" alt="" class="w-100 h-100" style="object-fit:cover; min-height: 220px;">
+          </div>
+          <div class="col-md-6">
+            <div class="p-4">
+              <h4 id="opmTitle" class="mb-2"></h4>
+              <div class="text-muted mb-3" id="opmSku"></div>
+              <div class="mb-3" id="opmDescription"></div>
+              <div class="d-flex gap-2">
+                <a id="opmViewBtn" href="#" class="btn btn-primary" target="_blank">View product</a>
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal" type="button">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>        
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<script>
+  document.addEventListener("click", function (e) {
+    const a = e.target.closest(".order-product-trigger");
+    if (!a) return;
+
+    const name = a.dataset.name || "Product";
+    const image = a.dataset.image || "";
+    const sku = a.dataset.sku || "";
+    const description = a.dataset.description || "";
+    const url = a.dataset.url || "";
+
+    document.getElementById("opmImage").src = image;
+    document.getElementById("opmImage").alt = name;
+    document.getElementById("opmTitle").textContent = name;
+    document.getElementById("opmSku").textContent = sku ? "SKU: " + sku : "";
+    document.getElementById("opmDescription").textContent = description;
+
+    const viewBtn = document.getElementById("opmViewBtn");
+    if (url) {
+      viewBtn.href = url;
+      viewBtn.classList.remove("disabled");
+    } else {
+      viewBtn.href = "#";
+      viewBtn.classList.add("disabled");
+    }
+  });
+</script>
