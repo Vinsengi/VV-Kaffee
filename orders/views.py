@@ -168,7 +168,7 @@ def pay(request, order_id: int):
     if request.user.is_authenticated:
         order = get_object_or_404(Order, pk=order_id, user=request.user)
     else:
-        order = get_object_or_404(Order, pk=order_id, user=None)
+        order = get_object_or_404(Order, pk=order_id, user__isnull=True)
 
     # Check for items
     if order.items.count() == 0:
