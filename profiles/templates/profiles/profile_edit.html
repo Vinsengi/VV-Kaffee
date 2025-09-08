@@ -1,20 +1,133 @@
-<div class="container py-4" style="max-width: 720px;">
-  <h2 class="mb-3">Edit Profile</h2>
-  <form method="post" class="row g-3">
-    {% csrf_token %}
-    {{ form.non_field_errors }}
-    {% for field in form %}
-      <div class="col-md-6">
-        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.errors %}
-          <div class="text-danger small">{{ field.errors|join:", " }}</div>
-        {% endif %}
-      </div>
-    {% endfor %}
-    <div class="col-12">
-      <button class="btn btn-primary">Save</button>
-      <a class="btn btn-link" href="{% url 'profiles:account_dashboard' %}">Cancel</a>
+{% load widget_tweaks %}
+<div class="container py-5" style="max-width: 900px;">
+  <!-- Page header -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h2 class="mb-1 fw-semibold">Edit Profile</h2>
+      <div class="text-secondary small">Update your contact details and shipping address</div>
     </div>
-  </form>
+    <a href="{% url 'profiles:account_dashboard' %}" class="btn btn-outline-secondary">Back to Account</a>
+  </div>
+
+  <div class="row g-4">
+    <!-- Left: Form -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4 p-lg-5">
+          <form method="post" enctype="multipart/form-data" class="row g-3">
+            {% csrf_token %}
+            {{ form.non_field_errors }}
+
+            <!-- Full name -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.full_name.id_for_label }}">Full name</label>
+              {{ form.full_name|add_class:"form-control" }}
+              {% if form.full_name.errors %}<div class="text-danger small mt-1">{{ form.full_name.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <!-- Email -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.email.id_for_label }}">Email</label>
+              {{ form.email|add_class:"form-control" }}
+              {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <!-- Phone -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.phone.id_for_label }}">Phone</label>
+              {{ form.phone|add_class:"form-control" }}
+              {% if form.phone.errors %}<div class="text-danger small mt-1">{{ form.phone.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div class="col-12"><hr class="my-2"></div>
+
+            <!-- Street -->
+            <div class="col-md-7">
+              <label class="form-label fw-semibold" for="{{ form.street.id_for_label }}">Street</label>
+              {{ form.street|add_class:"form-control" }}
+              {% if form.street.errors %}<div class="text-danger small mt-1">{{ form.street.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <!-- House number -->
+            <div class="col-md-5">
+              <label class="form-label fw-semibold" for="{{ form.house_number.id_for_label }}">House number</label>
+              {{ form.house_number|add_class:"form-control" }}
+              {% if form.house_number.errors %}<div class="text-danger small mt-1">{{ form.house_number.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <!-- City -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.city.id_for_label }}">City</label>
+              {{ form.city|add_class:"form-control" }}
+              {% if form.city.errors %}<div class="text-danger small mt-1">{{ form.city.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <!-- Postcode -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.postcode.id_for_label }}">Postcode</label>
+              {{ form.postcode|add_class:"form-control" }}
+              {% if form.postcode.errors %}<div class="text-danger small mt-1">{{ form.postcode.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <!-- Country -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.country.id_for_label }}">Country</label>
+              {{ form.country|add_class:"form-control" }}
+              {% if form.country.errors %}<div class="text-danger small mt-1">{{ form.country.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <!-- Profile Image -->
+            <div class="col-md-6">
+              <label class="form-label fw-semibold" for="{{ form.image.id_for_label }}">Profile Image</label>
+              {{ form.image|add_class:"form-control" }}
+              {% if form.image.errors %}<div class="text-danger small mt-1">{{ form.image.errors|join:", " }}</div>{% endif %}
+              {% if user.profile.image %}
+                <div class="mt-2">
+                  <img src="{{ user.profile.image.url }}" alt="Profile image" class="rounded shadow" style="width:100px;height:100px;object-fit:cover;">
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="col-12 mt-2">
+              <div class="d-flex gap-2">
+                <button class="btn btn-primary px-4">Save changes</button>
+                <a class="btn btn-outline-secondary" href="{% url 'profiles:account_dashboard' %}">Cancel</a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Live summary (matches shop card look) -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+          <h5 class="fw-semibold mb-3">Current Details</h5>
+          <div class="small text-secondary">
+            <div class="mb-2"><strong>Name:</strong> {{ request.user.profile.full_name|default:"—" }}</div>
+            <div class="mb-2"><strong>Phone:</strong> {{ request.user.profile.phone|default:"—" }}</div>
+            <div class="mb-2"><strong>Email:</strong> {{ request.user.profile.email|default:request.user.email|default:"—" }}</div>
+            <div class="mb-2"><strong>Shipping:</strong><br>
+              {{ request.user.profile.street|default:"—" }}
+              {{ request.user.profile.house_number|default:"" }}<br>
+              {{ request.user.profile.postcode|default:"—" }}
+              {{ request.user.profile.city|default:"—" }}<br>
+              {{ request.user.profile.country|default:"—" }}
+            </div>
+            <div class="mb-2">
+              <strong>Profile Image:</strong><br>
+              {% if request.user.profile.image %}
+                <img src="{{ request.user.profile.image.url }}" alt="Profile image" class="rounded shadow" style="width:80px;height:80px;object-fit:cover;">
+              {% else %}
+                <span class="text-muted">No image uploaded</span>
+              {% endif %}
+            </div>
+          </div>
+          <hr>
+          <p class="text-secondary small mb-0">These details are used as defaults at checkout.</p>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

@@ -2,6 +2,7 @@ from decimal import Decimal
 
 CART_SESSION_KEY = "cart"
 
+
 def cart_summary(request):
     cart = request.session.get(CART_SESSION_KEY, {})
     item_count = sum(int(item.get("quantity", 0)) for item in cart.values())
@@ -15,3 +16,9 @@ def cart_summary(request):
         "cart_subtotal": subtotal.quantize(Decimal("0.01")),
         "cart_total": total,
     }
+
+
+def cart_item_count(request):
+    cart = request.session.get("cart", {})
+    count = sum(item["quantity"] for item in cart.values() if isinstance(item, dict) and "quantity" in item)
+    return {"cart_item_count": count}

@@ -61,7 +61,7 @@ def profile_edit(request):
     profile = _ensure_profile(request.user)
 
     if request.method == "POST":
-        form = ProfileForm(request.POST, instance=profile)
+        form = ProfileForm(request.POST, request.FILES, instance=profile)
         if form.is_valid():
             form.save()
             messages.success(request, "Profile updated.")

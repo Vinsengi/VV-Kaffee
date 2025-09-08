@@ -165,7 +165,14 @@ def checkout(request):
 
 
 def pay(request, order_id: int):
-    order = get_object_or_404(Order, pk=order_id)
+    order = get_object_or_404(Order, pk=order_id, user=request.user)
+
+    # Check for items
+    if order.items.count() == 0:
+        messages.error(request, "This order has no items and cannot be paid.")
+        return redirect("orders:my_orders")  # Or another appropriate page
+
+    # Check for payment intent
     if not order.payment_intent_id:
         messages.error(request, "Payment not initialized for this order.")
         return redirect("orders:checkout")
@@ -173,7 +180,7 @@ def pay(request, order_id: int):
     # Build a clean list of items for display
     order_items = []
     subtotal = Decimal("0.00")
-    for oi in order.items.select_related("product").all():  # uses related_name="items"
+    for oi in order.items.select_related("product").all():
         line_total = (oi.unit_price * oi.quantity).quantize(Decimal("0.01"))
         subtotal += line_total
         order_items.append({
@@ -192,12 +199,18 @@ def pay(request, order_id: int):
     return render(request, "orders/pay.html", {
         "order": order,
         "order_items": order_items,
-        "subtotal": order.subtotal,   # already stored on order
+        "subtotal": order.subtotal,
         "shipping": order.shipping,
         "total": order.total,
         "stripe_publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
         "client_secret": client_secret,
     })
+
+
+def continue_payment(request, order_id):
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    # Your payment logic here (redirect to payment page, etc.)
+    return redirect("orders:pay", order_id=order.id)
 
 
 def thank_you(request, order_id: int):

@@ -9,15 +9,15 @@ load_dotenv(BASE_DIR / ".env")  # load .env into os.environ
 # ── Core ───────────────────────────────────────────────────────────────────────
 SECRET_KEY = config("SECRET_KEY", default="dev-secret-key-change-me")
 DEBUG = config("DEBUG", default=False, cast=bool)
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "vv-kaffee-5b7b3eb05052.herokuapp.com"]
 
 # Stripe (fail fast if missing in real envs)
 STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
 STRIPE_SECRET_KEY = config("STRIPE_SECRET_KEY", default="")
 STRIPE_WEBHOOK_SECRET = config("STRIPE_WEBHOOK_SECRET", default="")
 
-SITE_NAME = "Versöhnung und Vergebung Kaffee"
 SITE_URL = config("SITE_URL", default="http://127.0.0.1:8000")
+SITE_NAME = config("SITE_NAME", default="Versöhnung und Vergebung Kaffee")
 
 # ── Apps ──────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
@@ -33,6 +33,9 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",  # add other providers as needed
+    "cloudinary_storage",          # optional, only if using Cloudinary
+    "widget_tweaks",
 
     # project apps
     "products",

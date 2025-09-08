@@ -24,6 +24,7 @@ urlpatterns = [
     path("staff/fulfillment/recent/", views.fulfillment_recently_fulfilled, name="fulfillment_recent"),
     path("account/orders/", views.my_orders, name="my_orders"),
     path("account/orders/<int:order_id>/", views.my_order_detail, name="my_order_detail"),
+    path("continue-payment/<int:order_id>/", views.continue_payment, name="continue_payment"),
 
 
 
