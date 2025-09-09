@@ -3,7 +3,6 @@
 {% block content %}
 <div class="container py-4">
   <h1 class="mb-4">Your Cart</h1>
-
   {% if cart_items %}
   <div class="table-responsive">
     <table class="table align-middle">
@@ -88,7 +87,7 @@
 </div>
 
 <!-- Reusable modal (one per page) -->
-<div class="modal fade" id="cartItemModal" tabindex="-1" aria-labelledby="cartItemModalLabel" aria-hidden="true">
+<div class="modal fade" id="cartItemModal" tabindex="-1" aria-labelledby="ciTitle" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content overflow-hidden">
       <div class="modal-body p-0">
@@ -98,7 +97,7 @@
           </div>
           <div class="col-md-6">
             <div class="p-4">
-              <h4 id="ciTitle" class="mb-2"></h4>
+              <h4 id="ciTitle" class="mb-2">Product details</h4>
               <div class="text-muted mb-3" id="ciPrice"></div>
               <ul class="list-unstyled small mb-4" id="ciFacts"></ul>
               <div class="d-flex gap-2">
