@@ -24,13 +24,17 @@
   </head>
   <body class="bg-light">
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
       <div class="container">
         <a class="navbar-brand d-flex align-items-center" href="/">
           <img src="{% static 'branding/logo.png' %}" alt="VV Kaffee" width="28" height="28" class="rounded">
           <span class="fw-semibold">Home</span>
         </a>
-        <div class="collapse navbar-collapse">
+         <!-- Navbar toggler for mobile -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNavbar">
           <ul class="navbar-nav me-auto">
             <li class="nav-item"><a class="nav-link" href="{% url 'products:product_list' %}">Shop</a></li>
           </ul>
