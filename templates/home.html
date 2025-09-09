@@ -1,30 +1,34 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
-  <div class="p-5 mb-4 text-white rounded-3 shadow-sm"
-       style="background: url('/static/images/rwanda-coffee-bg.jpg') center/cover no-repeat;
-              position: relative;">
-    <!-- Overlay for better readability -->
-    <div style="background-color: rgba(0,0,0,0.55); position: absolute; top:0; left:0; right:0; bottom:0;"></div>
+ <div class="p-5 mb-4 text-white rounded-3 shadow-sm"
+     style="background: url('{% static 'images/rwanda-farmers.jpg' %}') center/cover no-repeat; position: relative;">
+  <!-- Dark overlay for text readability -->
+  <div style="background-color: rgba(0,0,0,0.55); position: absolute; top:0; left:0; right:0; bottom:0;"></div>
 
-    <div class="container py-5 text-center position-relative">
-      <h1 class="display-5 fw-bold">Coffee from a Land of Forgiveness</h1>
-      <p class="col-md-10 mx-auto fs-5 mt-3">
-        Versöhnung und Vergebung Kaffee is more than a drink — it is a story.  
-        Grown in Rwanda, where wounds of the past are being healed by reconciliation,  
-        these beans are cultivated by hands of forgiveness and hearts of hope.  
-        Every cup carries that spirit of renewal. As you enjoy this coffee,  
-        you become part of this journey of healing and unity.  
-      </p>
-      <a href="/shop/" class="btn btn-lg btn-light mt-3 px-4">
-        Shop Coffee Beans
-      </a>
-    </div>
+  <div class="container py-5 text-center position-relative">
+    <h1 class="display-5 fw-bold text-white" aria-label="Coffee from a Land of Forgiveness">
+  Coffee from a Land of Forgiveness
+</h1>
+    <p class="col-md-10 mx-auto fs-5 mt-3 text-white">
+      Versöhnung und Vergebung Kaffee is more than coffee — it is a living story.  
+      From the green hills of Rwanda, where a nation has turned pain into reconciliation,  
+      farmers cultivate beans with hearts of forgiveness and resilience.  
+      Every sip connects you to this journey of healing and unity.  
+      Even as you drink, you join in the process of reconciliation.
+    </p>
+    <a href="/shop/" class="btn btn-lg btn-light mt-3 px-4">
+      Shop Coffee Beans
+    </a>
   </div>
+</div>
+
   <div class="container my-4">
     <form method="post" action="{% url 'newsletter:subscribe' %}" class="row g-2 align-items-center justify-content-center">
       {% csrf_token %}
       <div class="col-auto">
-        <input type="email" name="email" class="form-control" placeholder="Your email for updates" required>
+        <label for="newsletter-email" class="form-label visually-hidden">Email address for newsletter</label>
+        <input type="email" id="newsletter-email" name="email" class="form-control" placeholder="Your email for updates" required>
       </div>
       <div class="col-auto">
         <button type="submit" class="btn btn-primary">Subscribe</button>

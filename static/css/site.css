@@ -7,12 +7,12 @@
 }
 
 .navbar-dark .nav-link {
-  color: rgba(255, 255, 255, 0.85);
+  color: #fff; /* Improved contrast */
   transition: color 0.2s ease;
 }
 .navbar-dark .nav-link:hover,
 .navbar-dark .nav-link:focus {
-  color: #fff;
+  color: #ffd700; /* Gold for strong contrast on hover */
 }
 
 /* Buttons */
@@ -38,7 +38,7 @@
 /* Tables */
 .table th {
   font-weight: 600;
-  color: #444;
+  color: #222; /* Darker for better contrast */
 }
 .table td {
   vertical-align: middle;
@@ -47,10 +47,12 @@
 /* Footer */
 footer {
   font-size: 0.9rem;
+  color: #fff; /* Ensure footer text is white on dark background */
 }
 footer div:first-child {
   font-weight: 500;
 }
+
 /* edit profile */
 .text-coffee { color: #6F4E37; }
 .border-coffee { border-color: #6F4E37 !important; }
