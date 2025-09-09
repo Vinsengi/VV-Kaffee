@@ -91,7 +91,6 @@ VV-Kaffee is an initiative designed to foster dialogue, understanding, and heali
 ```
 
 ### Admin Dashboard
-
 ```
 +--------------------------------------+
 | Admin Dashboard                      |
@@ -99,13 +98,42 @@ VV-Kaffee is an initiative designed to foster dialogue, understanding, and heali
 | [Manage Events] [Manage Users]       |
 | [Moderate Forums] [Upload Resources] |
 +--------------------------------------+
-| Event Stats | User Stats             |
+| Event Stats:                         |
+| - Total Events Hosted                |
+| - Upcoming Events                    |
+| - Past Events                        |
 +--------------------------------------+
+| User Stats:                          |
+| - Registered Participants            |
+| - Active Users                       |
+| - New Sign-ups                       |
++--------------------------------------+
+| Forum Activity:                      |
+| - Posts Today                        |
+| - Most Active Topics                 |
++--------------------------------------+
+| Resource Library Management:          |
+| - Add/Remove Articles, Videos, Guides|
++--------------------------------------+
+```
 ```
 
 ## Getting Started
-
 1. **Clone the repository:**
+
+    - Open your terminal or command prompt.
+    - Navigate to the directory where you want to store the project.
+      ```bash
+      cd path/to/your/projects
+      ```
+    - Run the following command to clone the repository:
+      ```bash
+      git clone https://github.com/yourusername/vv-kaffee.git
+      ```
+    - After cloning, change into the project directory:
+      ```bash
+      cd vv-kaffee
+      ```
     ```bash
     git clone https://github.com/yourusername/vv-kaffee.git
     ```
