@@ -38,20 +38,7 @@
           <ul class="navbar-nav me-auto">
             <li class="nav-item"><a class="nav-link" href="{% url 'products:product_list' %}">Shop</a></li>
           </ul>
-          {% comment %} <ul class="navbar-nav ms-auto">
-            {% if user.is_authenticated %}
-              <li class="nav-item"><a class="nav-link" href="{% url 'profiles:account_dashboard' %}">My Account</a></li>
-              <li class="nav-item">
-                <form method="post" action="{% url 'account_logout' %}" class="d-inline">
-                  {% csrf_token %}
-                  <button type="submit" class="nav-link btn btn-link text-light">Logout</button>
-                </form>
-              </li>
-            {% else %}
-              <li class="nav-item"><a class="nav-link" href="{% url 'account_login' %}">Login</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'account_signup' %}">Register</a></li>
-            {% endif %} {% endcomment %}
-            <!-- Right nav -->
+         
             <ul class="navbar-nav align-items-lg-center gap-lg-2">
               {% if user.is_authenticated %}
                 <li class="nav-item dropdown d-flex align-items-center gap-2">

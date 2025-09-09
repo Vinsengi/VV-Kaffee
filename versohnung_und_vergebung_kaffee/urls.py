@@ -21,4 +21,5 @@ urlpatterns = [
     path("post-login/", profile_views.post_login_redirect, name="post_login_redirect"),
 
     path("reviews/", include(("reviews.urls", "reviews"), namespace="reviews")),
+    path("newsletter/", include("newsletter.urls")),
 ]

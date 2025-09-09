@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "reviews",
     "profiles.apps.ProfilesConfig",
     "cart",
+    "newsletter",
 ]
 
 SITE_ID = 1
