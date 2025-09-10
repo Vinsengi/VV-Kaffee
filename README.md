@@ -106,6 +106,24 @@ This app is designed to help small and medium-sized businesses:
 - 🏷️ **Discount codes**: Support for promotional codes and coupons
 - 🧾 **Invoice PDF generation**: Customers can download invoices for their orders
 - 🔐 **Advanced Admin Permissions**: Enable role-based access for fulfillment, support, and product management
+## 🛠️ Django Admin (Customized)
+
+VV-Kaffee uses a **customized Django admin interface** for efficient management of products, orders, users, and reviews. The admin dashboard features:
+
+- Custom product image previews
+- Inline order and review management
+- Enhanced filtering and search for products and orders
+- Role-based access for fulfillment and support teams
+
+Below is a screenshot of the customized Django admin panel in this project:
+
+![Customized Django Admin vv-kaffee](./static/images/readme_images/admin_login_page.png)
+
+![Customized Django Admin vv-kaffee](./static/images/readme_images/admin_product_page.png)
+
+etc.,....
+
+This interface streamlines admin tasks and provides a clear overview of shop activity, making management simple and intuitive.
 
 ---
 
