@@ -8,14 +8,14 @@
     <table class="table align-middle">
       <thead>
         <tr>
-          <th style="width:64px;"></th>
+          <th style="width:64px;">Item Image</th>
           <th>Item</th>
           <th class="text-center">Grind</th>
           <th class="text-center">Weight</th>
           <th class="text-center">Qty</th>
           <th class="text-end">Unit</th>
           <th class="text-end">Line</th>
-          <th></th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -59,26 +59,25 @@
         <tr>
           <th colspan="6" class="text-end">Subtotal</th>
           <th class="text-end">€{{ subtotal }}</th>
-          <th></th>
         </tr>
         <tr>
           <th colspan="6" class="text-end">Shipping</th>
           <th class="text-end">€{{ shipping }}</th>
-          <th></th>
+          
         </tr>
         <tr>
           <th colspan="6" class="text-end fs-5">Total</th>
           <th class="text-end fs-5">€{{ total }}</th>
-          <th></th>
+         
         </tr>
       </tfoot>
     </table>
   </div>
 
   <div class="d-flex justify-content-end mt-3 gap-2">
-    <a class="btn btn-outline-secondary" href="{% url 'products:product_list' %}">Continue shopping</a>
+    <a class="btn btn-secondary" href="{% url 'products:product_list' %}">Continue shopping</a>
     <a class="btn btn-primary" href="{% url 'orders:checkout' %}">Checkout</a>
-    <a href="{% url 'cart:clear' %}" class="btn btn-outline-danger">Clear Cart</a>
+    <a href="{% url 'cart:clear' %}" class="btn btn-danger">Clear Cart</a>
   </div>
   {% else %}
     <p>Your cart is empty.</p>
