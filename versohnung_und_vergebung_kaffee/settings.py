@@ -33,7 +33,7 @@ INSTALLED_APPS = [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
-    "allauth.socialaccount.providers.google",  # add other providers as needed
+    "allauth.socialaccount.providers.google",  
     "cloudinary_storage",          # optional, only if using Cloudinary
     "widget_tweaks",
 
@@ -132,7 +132,7 @@ STORAGES = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# ── Optional Cloudinary (leave empty unless used) ─────────────────────────────
+# ── Optional Cloudinary  ─────────────────────────────
 CLOUDINARY_URL = config("CLOUDINARY_URL", default="")
 
 STORAGES = {
